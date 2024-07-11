@@ -2,12 +2,11 @@ import pandas as pd
 import regex as re
 
 
-def fps_sampler(data, target_fps:float, input_fps: float = 240.0):
+def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float = 240.0):
     sample_size = int(input_fps / target_fps)
     _output_data = []
-    for i in range(data.shape[0]):
-        if i% sample_size == 0:
-            _output_data.append(_row)
+    #get every nth row of a dataframe
+    _output_data = data.iloc[::sample_size]
     return _output_data
 
 
@@ -16,12 +15,18 @@ def extract_motive_data(csv_path:str,
                  start_frame: int, end_frame: int, 
                  fps: float = 30.0):
     '''
-    csv_path:str,
-    filter_keys: dict[str, str] 
-    start_frame: int, end_frame: int, 
-    fps: float = 30.0
-    ---
+    Extract and filter motive data from a CSV file.
 
+    Args:
+    csv_path (str): Path to the CSV file.
+    filter_keys (dict): Dictionary to filter and rename columns. Keys are new names, values are original column names.
+    start_frame (int): Start frame for slicing the data.
+    end_frame (int): End frame for slicing the data.
+    fps (float): Target frames per second for downsampling. Default is 30.0.
+
+    Returns:
+    pd.DataFrame: Filtered and downsampled DataFrame.
+    ----------------
     filter_keys = {
     'GR': 'GRIPPER_2_Rotation', 
     'GP': 'GRIPPER_2_Position',
@@ -59,12 +64,11 @@ def extract_motive_data(csv_path:str,
     _data = fps_sampler(_data, target_fps=fps, input_fps=240.0)
 
     useful_data = {}
-    for _key, _value in filter_keys.items():
-        pattern = re.compile(_value)
-        useful_data[_key] = _data.filter(regex=pattern).values.astype('float64').tolist()
-        
-    # Regular expression pattern to match columns start_frameing with 'gripper_1_Rotation'
-    return useful_data
+    for new_name, original_name in filter_keys.items():
+        if original_name in _data.columns:
+            useful_data[new_name] = _data[original_name]
+
+    return pd.DataFrame(useful_data)
 
 
 def motive_new_parser():
