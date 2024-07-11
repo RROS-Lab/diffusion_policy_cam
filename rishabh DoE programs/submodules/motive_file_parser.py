@@ -125,3 +125,9 @@ def motive_csv_cleaner(csv_path:str):
     data = data.dropna()
     data = data.reset_index(drop=True)
     data.to_csv("test.csv", index=False)
+
+
+
+if __name__ == "__main__":
+    motive_csv_cleaner("./../datasets/dataset july 10/test/test_127.csv")
+
