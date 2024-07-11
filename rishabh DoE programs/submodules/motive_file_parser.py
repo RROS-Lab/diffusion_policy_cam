@@ -71,5 +71,57 @@ def extract_motive_data(csv_path:str,
     return pd.DataFrame(useful_data)
 
 
-def motive_new_parser():
-    pass
+def motive_csv_cleaner(csv_path:str):
+    data = pd.read_csv(csv_path)
+    data = data.reset_index(drop=False)
+    data = data.drop(index =0)
+    data = data.drop(index =2)
+    data = data.reset_index(drop=True)
+
+    row1 = data.iloc[0]
+    row2 = data.iloc[1]
+    row3 = data.iloc[2]
+
+    combined_values = []
+    columns_to_drop = [] 
+    list = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3', 'D1']
+    i = -1 
+
+    for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
+        if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
+            if str(a).startswith('Unlabeled'):
+                i += 1
+                if i <= 29:
+                    combined_values.append(list[int(i / 3)] + '_' + c.lower())  # Use list comprehension for efficiency
+                else:
+                    columns_to_drop.append(index)
+            elif 'Marker' in str(a):
+                columns_to_drop.append(index)
+            elif 'RigidBody' in str(a):
+                combined_values.append('battery_' + c.lower())
+            else:
+                combined_values.append(str(a).split("_")[0] + '_' + c.lower())
+        else:
+            if str(a).startswith('Unlabeled'):
+                i += 1
+                if i <= 29:
+                    combined_values.append(list[int(i / 3)] + '_' + c)
+                else:
+                    columns_to_drop.append(index)
+            elif 'Marker' in str(a):
+                columns_to_drop.append(index)
+            elif 'RigidBody' in str(a):
+                combined_values.append('battery_' + c)
+            else:
+                combined_values.append(str(a).split("_")[0] + '_' + c)
+
+    columns_to_drop.append(0)
+    columns_to_drop.append(1)
+    data = data.drop(data.columns[columns_to_drop], axis=1)
+    data.columns = combined_values[2:]
+    data = data.drop(index =0)
+    data = data.drop(index =1)
+    data = data.drop(index =2)
+    data = data.dropna()
+    data = data.reset_index(drop=True)
+    data.to_csv("test.csv", index=False)
