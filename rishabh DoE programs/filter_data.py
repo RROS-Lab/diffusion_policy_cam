@@ -34,44 +34,64 @@ import submodules.motive_file_parser as mfp
 
 
 print("..........")
-path_name = "./../../datasets/dataset jun 28/Supporting Data - Sheet1.csv"
-list = pd.read_csv(path_name)
-base_path = "./../../datasets/dataset jun 28/sean & Li 2 exports/"
-collums = list.columns
-result_dict = {}
+path_name = "./../datasets/dataset jun 28/Supporting Data - Sheet1.csv"
+metadata = pd.read_csv(path_name)
+base_path = "./../datasets/dataset jun 28/sean & Li 2 exports/"
+_columns = metadata.columns
+exps_metadata = {}
 count = 0
-for i in range(len(list)):
-    if list[collums[3]][i] == 'accept':
-        result_dict[count] = {
-            'Path': base_path + str(list[collums[0]][i]) + '.csv',
-            'start_frame': list[collums[1]][i],
-            'end_frame': list[collums[2]][i],
-            'Note': list[collums[4]][i]
+for i in range(len(metadata)):
+    if metadata[_columns[3]][i] == 'accept':
+        exps_metadata[count] = {
+            'Path': base_path + str(metadata[_columns[0]][i]) + '.csv',
+            'start_frame': int(metadata[_columns[1]][i]),
+            'end_frame': int(metadata[_columns[2]][i]),
+            'Note': metadata[_columns[4]][i]
         }
         count += 1
 
 
-with PdfPages('experiment_results.pdf') as pdf:
-    for key in result_dict:
-        _data= extract_data(result_dict[key])
-        # euler_Gwxyz = euler_change_old(Gwxyz)  # Convert quaternions to Euler angles
-        # euler_Gwxyz = Gwxyz
-        # {'GR', 'GP', 'SR', 'SP', 'BxR', 'BxP', 'BuR', 'BuP'}
-        create_subplots(_data['GP'],
-                        _data['GR'],
-                        _data['SP'],
-                        _data['SR'],
-                        title=['Gripper Pos', 'Gripper Rot', 'Scooper Pos','Scooper Rot'],
-                        layouts = [(2, 2, 1), (2, 2, 2), (2, 2, 3), (2, 2, 4)],
-                        sup_title = f"take_{key}")
 
-        print(f"creating subplots for {key}")  
-        pdf.savefig()
-        plt.close()
+for key in exps_metadata:
+    exp_data = mfp.extract_motive_data(
+                                    csv_path = exps_metadata[key]['Path'],
+                                    filter_keys = {
+                                                    'GR': 'GRIPPER_2_Rotation',
+                                                    'GP': 'GRIPPER_2_Position',
+                                                    'SR': 'diff_scooper_2_2_Rotation',
+                                                    'SP': 'diff_scooper_2_2_Position',
+                                                    'BxR': 'box3_Rotation',
+                                                    'BxP': 'box3_Position',
+                                                    'BuR': 'bucket_SC_Rotation',
+                                                    'BuP': 'bucket_SC_Position'
+                                                },
+                                    start_frame = exps_metadata[key]['start_frame'],
+                                    end_frame = exps_metadata[key]['end_frame'],
+                                    fps = 30.0
+                                    )
+
+    print(exp_data)
+
+    # euler_Gwxyz = euler_change_old(Gwxyz)  # Convert quaternions to Euler angles
+    # euler_Gwxyz = Gwxyz
+    # {'GR', 'GP', 'SR', 'SP', 'BxR', 'BxP', 'BuR', 'BuP'}
 
 
 
-# for key in result_dict:
-#     _data= extract_data(result_dict[key])
+# with PdfPages('experiment_results.pdf') as pdf:
+    # create_subplots(_data['GP'],
+    #                 _data['GR'],
+    #                 _data['SP'],
+    #                 _data['SR'],
+    #                 title=['Gripper Pos', 'Gripper Rot', 'Scooper Pos','Scooper Rot'],
+    #                 layouts = [(2, 2, 1), (2, 2, 2), (2, 2, 3), (2, 2, 4)],
+    #                 sup_title = f"take_{key}")
+
+    # print(f"creating subplots for {key}")  
+    # pdf.savefig()
+    # plt.close()
+
+# for key in exps_metadata:
+#     _data= extract_data(exps_metadata[key])
 #     print(_data)
 #     # create_xy_video(_data['GP'], _data['BxP'], _data['SP'], fps=30, video_filename=f'videos/output_{key}.avi', marker_list=['o', 'x', '*'])

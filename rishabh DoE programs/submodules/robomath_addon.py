@@ -1,7 +1,5 @@
-import robomath as rm
+import submodules.robomath as rm
 import numpy as np
-
-
 
 def quaternion_2_euler(qin : np.ndarray | list) -> np.ndarray:
     _pose = rm.quaternion_2_pose(qin)
