@@ -78,21 +78,22 @@ def extract_data_temp(file_path: str):
         mk_TxyzQwxyz[mk] = _mk_np_array
 
     
-    _CXYZ = rb_TxyzQwxyz["chisel"][:, 0:3]
-    _Cwxyz = rb_TxyzQwxyz["chisel"][:, 3:]
-    _GXYZ = rb_TxyzQwxyz["gripper"][:, 0:3]
-    _Gwxyz = rb_TxyzQwxyz["gripper"][:, 3:]
-    _BXYZ = rb_TxyzQwxyz["battery"][:, 0:3]
-    _Bwxyz = rb_TxyzQwxyz["battery"][:, 3:]
-    _A1XYZ = mk_TxyzQwxyz["A1"]
-    _A2XYZ = mk_TxyzQwxyz["A2"]
-    _A3XYZ = mk_TxyzQwxyz["A3"]
-    _B1XYZ = mk_TxyzQwxyz["B1"]
-    _B2XYZ = mk_TxyzQwxyz["B2"]
-    _B3XYZ = mk_TxyzQwxyz["B3"]
-    _C1XYZ = mk_TxyzQwxyz["C1"]
-    _C2XYZ = mk_TxyzQwxyz["C2"]
-    _C3XYZ = mk_TxyzQwxyz["C3"]
+    _CXYZ = rb_TxyzQwxyz["chisel"][:, 0:3].tolist()
+    _Cwxyz = rb_TxyzQwxyz["chisel"][:, 3:].tolist()
+    _GXYZ = rb_TxyzQwxyz["gripper"][:, 0:3].tolist()
+    _Gwxyz = rb_TxyzQwxyz["gripper"][:, 3:].tolist()
+    _BXYZ = rb_TxyzQwxyz["battery"][:, 0:3].tolist()
+    _Bwxyz = rb_TxyzQwxyz["battery"][:, 3:].tolist()
+    _A1XYZ = mk_TxyzQwxyz["A1"].tolist()
+    _A2XYZ = mk_TxyzQwxyz["A2"].tolist()
+    _A3XYZ = mk_TxyzQwxyz["A3"].tolist()
+    _B1XYZ = mk_TxyzQwxyz["B1"].tolist()
+    _B2XYZ = mk_TxyzQwxyz["B2"].tolist()
+    _B3XYZ = mk_TxyzQwxyz["B3"].tolist()
+    _C1XYZ = mk_TxyzQwxyz["C1"].tolist()
+    _C2XYZ = mk_TxyzQwxyz["C2"].tolist()
+    _C3XYZ = mk_TxyzQwxyz["C3"].tolist()
+
     return [_CXYZ, _Cwxyz, _GXYZ, _Gwxyz, _BXYZ, _Bwxyz, _A1XYZ, _A2XYZ, _A3XYZ, _B1XYZ, _B2XYZ, _B3XYZ, _C1XYZ, _C2XYZ, _C3XYZ]
 
 # def extract_data(file_path: str):
