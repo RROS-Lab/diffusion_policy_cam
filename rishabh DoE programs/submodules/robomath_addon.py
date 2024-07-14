@@ -75,6 +75,8 @@ def normalize_eulers(angles: np.ndarray) -> np.ndarray:
     """
     rows, cols = angles.shape
 
+    if cols != 3:
+        raise ValueError("The input array should have 3 columns for euler angles.")
     for col in range(cols):
         angles[:, col] = np.unwrap(angles[:, col])
     

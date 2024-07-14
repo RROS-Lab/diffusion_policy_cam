@@ -97,9 +97,14 @@ def extract_data_temp(file_path: str):
     return [_CXYZ, _Cwxyz, _GXYZ, _Gwxyz, _BXYZ, _Bwxyz, _A1XYZ, _A2XYZ, _A3XYZ, _B1XYZ, _B2XYZ, _B3XYZ, _C1XYZ, _C2XYZ, _C3XYZ]
 
 
-def extract_data(file_path: str):
+def extract_data(file_path: str, target_fps=None, input_fps=None):
+    ''' 
+    target_fps: float 30.0 | None
+    input_fps: float 120.0 | None
+    '''
     data = pd.read_csv(file_path)
-    data = fps_sampler(data, target_fps=30.0, input_fps=120.0)
+    if target_fps and input_fps:
+        data = fps_sampler(data, target_fps=target_fps, input_fps=target_fps)
     rigid_bodies = ["chisel", "gripper", "battery"]
     markers = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]
 

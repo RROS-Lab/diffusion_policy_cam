@@ -6,7 +6,9 @@ from matplotlib import pyplot as plt
 # from submodules.trajectory_animator import TrajectoryAnimator
 
 file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_134_cleaned.csv'
-CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path)
+CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path, 
+                                                                                                                        target_fps=60.0,
+                                                                                                                        input_fps=120.0)
 
 # dir_path = './../datasets/Chisel_problem/120/cleaned_test_data/'
 # CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data_chisel(data_path=dir_path)
