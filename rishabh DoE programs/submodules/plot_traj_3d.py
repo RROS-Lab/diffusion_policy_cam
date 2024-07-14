@@ -57,11 +57,8 @@ class PlotTraj3D(object):
     def plot_motion_rpy(ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
         ax.grid(True)
         ax.set_facecolor('lightgray')
-        euler_path = []
-        for frame in geometric_path:
-            xyz_rpy = rm.Pose_2_KUKA(rm.quaternion_2_pose(frame[3:])) #TODO: check if this is correct conversion pose_2_xyzrpw??
-            euler_path.append(xyz_rpy)
-        euler_path = np.vstack(euler_path)
+        #apply 
+
         ax.set_title('YPR')
         ax.plot(euler_path[:, 3], color='orange')
         ax.plot(euler_path[:, 4], color='magenta')
