@@ -121,7 +121,7 @@ class PlotTraj3D(object):
         frames = traj[::density]
         cls.plot_path(ax1, path)
         cls.plot_nodes(ax1, nodes)
-        cls.plot_geometric_path(ax1, frames, size=0.01, linewidth=1)
+        cls.plot_geometric_path(ax1, frames, size=0.03, linewidth=1)
         cls.plot_motion_xyz(ax2, traj)
         cls.plot_motion_rpy(ax3, traj)
         cls.plot_motion_quat(ax4, traj)

@@ -5,9 +5,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_142_cleaned.csv'
-CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path)
+# file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_142_cleaned.csv'
+# CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path)
 
+dir_path = './../datasets/Chisel_problem/120/cleaned_test_data/'
+CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data_chisel(data_path=dir_path)
 
 C_TxyzQwxyz = np.concatenate([np.array(CXYZ), np.array(Cwxyz)], axis=1)
 G_TxyzQwxyz = np.concatenate([np.array(GXYZ), np.array(Gwxyz)], axis=1)
