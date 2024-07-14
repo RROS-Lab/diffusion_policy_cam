@@ -4,6 +4,7 @@ import submodules.robomath_addon as rma
 import numpy as np
 import pandas as pd
 from matplotlib.animation import FuncAnimation
+
 class PlotTraj3D(object):
     def __init__(self):
         print("3D_traj_plot.py is being run directly")
@@ -49,11 +50,11 @@ class PlotTraj3D(object):
 
     @classmethod
     def plot_path(cls, ax, path: np.ndarray) -> None:
-        ax.plot(path[:, 0], path[:, 1], path[:, 2])
+        return ax.plot(path[:, 0], path[:, 1], path[:, 2])
 
     @classmethod
     def plot_nodes(cls, ax, nodes: np.ndarray) -> None:
-        ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+        return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
 
     
     @classmethod
@@ -188,46 +189,81 @@ class PlotTraj3D(object):
         ani = FuncAnimation(self.fig, update, frames=len(traj), init_func=init, blit=False, interval=interval)
         return ani
 
-    def animate_multiple_trajectories(self, list_trajectories: list[np.ndarray] , interval: int = 100) -> FuncAnimation:
+    def animate_multiple_trajectories(self, list_trajectories: list[np.ndarray], interval: int = 100) -> FuncAnimation:
+        """
+            Animate multiple 3D trajectories.
+
+            Parameters:
+            list_trajectories (list[np.ndarray]): A list of 3D trajectories, each represented as a numpy array.
+            interval (int, optional): The interval between frames in milliseconds. Default is 100.
+
+            Returns:
+            FuncAnimation: The animation object for the trajectories.
+        """
         ax = self.add_subplot(111, projection='3d', title='3D Spline Trajectories', labels=['X', 'Y', 'Z'])
+        # Concatenate all trajectory points into a single array for setting plot limits
         all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
+        # Set axis limits based on the collected points
         self.set_3D_plot_axis_limits(ax, all_points)
 
-        lines = [ax.plot([], [], [], 'r-', label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
+        # Initialize lines for each trajectory, empty at first, with a specific style and label
+        lines = [ax.plot([], [], [], 'r-', linewidth=0.5, label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
+
+        # Initialize marker points for each trajectory, empty at first
         points = [ax.plot([], [], [], 'bo')[0] for _ in list_trajectories]
+
+        # Create a list of lists for storing quivers associated with each trajectory
         quivers_lists = [[] for _ in list_trajectories]  # Each trajectory can have its own set of quivers
 
         def init():
+            # Clear line and point data for resetting the plot
             for line, point in zip(lines, points):
                 line.set_data([], [])
                 line.set_3d_properties([])
                 point.set_data([], [])
                 point.set_3d_properties([])
+            # Remove all quivers and clear their lists
             for quiver_list in quivers_lists:
                 for q in quiver_list:
                     q.remove()
                 quiver_list.clear()  # Clear the list after removing quivers
+
+            # Return a list of all artists that need to be redrawn
             return lines + points + [item for sublist in quivers_lists for item in sublist]
 
+        # Define an update function for the animation that gets called at each frame
         def update(num):
+            # Update the positions of lines, points, and quivers for each trajectory
             for i, (line, point, quiver_list) in enumerate(zip(lines, points, quivers_lists)):
+                # Get the current trajectory
                 traj = list_trajectories[i]
+                # Update the line and point positions
+                # Set the x and y coordinates for 2D lines
                 line.set_data(traj[:num + 1, 0], traj[:num + 1, 1])
+                # Set the z-coordinate for 3D lines
                 line.set_3d_properties(traj[:num + 1, 2])
+
+                # Set the x, y, and z coordinates for 3D points
                 point.set_data(traj[num:num + 1, 0], traj[num:num + 1, 1])
+                
+                # Set the z-coordinate for 3D points
                 point.set_3d_properties(traj[num:num + 1, 2])
 
                 # Correctly handle quivers
                 # Remove old quivers properly
+                # Remove existing quivers and clear the list
                 while quiver_list:
                     q = quiver_list.pop()
+                    # Remove the quiver from the plot
                     q.remove()
 
-                # Add new quivers
+                # Add new quivers if orientation data is available
                 if traj.shape[1] > 3:  # Check for orientation data
                     quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=0.1, linewidth=1))
+            # Return a list of all artists that need to be redrawn
             return lines + points + [item for sublist in quivers_lists for item in sublist]
 
         ani = FuncAnimation(self.fig, update, frames=len(list_trajectories[0]), init_func=init, blit=False, interval=interval)
         return ani
     
+

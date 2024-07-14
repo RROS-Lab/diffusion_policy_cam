@@ -3,9 +3,9 @@ from submodules import robomath_addon as rma
 import submodules.motive_file_parser as mfp
 import numpy as np
 from matplotlib import pyplot as plt
+from submodules.trajectory_animator import TrajectoryAnimator
 
-
-file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_142_cleaned.csv'
+file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_134_cleaned.csv'
 CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path)
 
 # dir_path = './../datasets/Chisel_problem/120/cleaned_test_data/'
@@ -52,11 +52,26 @@ if __name__ == '__main__':
     ##############################
 
     plotter = PlotTraj3D()
-    traj = C_TxyzQwxyz
+
     # ani = plotter.animate_trajectory(traj)
     ani = plotter.animate_multiple_trajectories(
                                                 list_trajectories=[C_TxyzQwxyz, G_TxyzQwxyz, A1_Txyz, A2_Txyz, A3_Txyz, B1_Txyz, B2_Txyz, B3_Txyz, C1_Txyz, C2_Txyz, C3_Txyz],
                                                 interval=50
                                                 )
-    ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=30)
+    ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=60)
     plt.show()
+
+    ##############################
+
+    ## Set up the matplotlib figure
+    # fig = plt.figure(figsize=(10, 8))
+    # animator = TrajectoryAnimator(fig)
+
+    # # Define your trajectories; just an example here with one trajectory for simplicity
+    # trajectories = [C_TxyzQwxyz]  # Add more trajectories if needed
+
+    # # Create the animation
+    # animation = animator.animate_multiple_trajectories(trajectories, interval=50)
+
+    # # If running in a script and not in a Jupyter notebook, use plt.show()
+    # plt.show()
