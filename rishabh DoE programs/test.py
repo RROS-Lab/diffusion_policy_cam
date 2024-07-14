@@ -66,14 +66,14 @@ if __name__ == '__main__':
 
 
     ##############################
-    # ani = plot.animate_multiple_trajectories(ax=ax1,
-    #                                          list_trajectories=[*rigid_bodies, *markers],
-    #                                          interval=50,
-    #                                          quiver_line_width=2,
-    #                                          quiver_size=0.07,
-    #                                          path_line_width=0.4)
+    ani = plot.animate_multiple_trajectories(ax=ax1,
+                                             list_trajectories=[*rigid_bodies, *markers],
+                                             interval=50,
+                                             quiver_line_width=2,
+                                             quiver_size=0.07,
+                                             path_line_width=0.4)
     
-    # ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=60)
+    ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=60)
     plt.show()
 
     ##############################
