@@ -3,7 +3,7 @@ import submodules.robomath as rm
 import submodules.robomath_addon as rma
 import numpy as np
 import pandas as pd
-
+from matplotlib.animation import FuncAnimation
 class PlotTraj3D(object):
     def __init__(self):
         print("3D_traj_plot.py is being run directly")
@@ -65,10 +65,15 @@ class PlotTraj3D(object):
         x_axis = rotation_matrix[:, 0] * size
         y_axis = rotation_matrix[:, 1] * size
         z_axis = rotation_matrix[:, 2] * size
-        ax.quiver(position[0], position[1], position[2], x_axis[0], x_axis[1], x_axis[2], color='r', linewidth=linewidth)
-        ax.quiver(position[0], position[1], position[2], y_axis[0], y_axis[1], y_axis[2], color='g', linewidth=linewidth)
-        ax.quiver(position[0], position[1], position[2], z_axis[0], z_axis[1], z_axis[2], color='b', linewidth=linewidth)
-        
+
+        quivers = [
+            ax.quiver(position[0], position[1], position[2], x_axis[0], x_axis[1], x_axis[2], color='r', linewidth=linewidth),
+            ax.quiver(position[0], position[1], position[2], y_axis[0], y_axis[1], y_axis[2], color='g', linewidth=linewidth),
+            ax.quiver(position[0], position[1], position[2], z_axis[0], z_axis[1], z_axis[2], color='b', linewidth=linewidth)
+        ]
+        return quivers
+    
+
     @classmethod
     def plot_geometric_path(cls, ax, geometric_path: np.ndarray[np.ndarray[7]], size:float=0.1, linewidth:float=1) -> None:
         for frame in geometric_path:
@@ -154,3 +159,68 @@ class PlotTraj3D(object):
         self.set_3D_plot_axis_limits(ax1, traj)
         self.plot_single_traj(ax1, ax2, ax3, ax4, traj, density=density)
     
+    
+    def animate_trajectory(self, traj: np.ndarray[np.ndarray[7]], interval: int = 100) -> FuncAnimation:
+        ax = self.add_subplot(121, projection='3d', title='3D Spline Trajectory', labels=['X', 'Y', 'Z'])
+        self.set_3D_plot_axis_limits(ax, traj[:, :3])
+
+        line, = ax.plot([], [], [], 'r-', label='Trajectory')
+        point, = ax.plot([], [], [], 'bo')
+        quivers = []
+
+        def init():
+            line.set_data([], [])
+            line.set_3d_properties([])
+            point.set_data([], [])
+            point.set_3d_properties([])
+            return [line, point] + quivers
+
+        def update(num):
+            line.set_data(traj[:num+1, 0], traj[:num+1, 1])
+            line.set_3d_properties(traj[:num+1, 2])
+            point.set_data(traj[num:num+1, 0], traj[num:num+1, 1])
+            point.set_3d_properties(traj[num:num+1, 2])
+            for q in quivers:
+                q.remove()
+            quivers[:] = self.plot_coordinate_frame(ax, traj[num], size=0.05, linewidth=1)
+            return [line, point] + quivers
+
+        ani = FuncAnimation(self.fig, update, frames=len(traj), init_func=init, blit=False, interval=interval)
+        return ani
+    
+    def animate_multiple_trajectories(self, list_trajectories:list[np.ndarray[np.ndarray[7]]], interval: int = 100) -> FuncAnimation:
+        ax = self.add_subplot(121, projection='3d', title='3D Spline Trajectory', labels=['X', 'Y', 'Z'])
+        all_points = np.concatenate(list_trajectories, axis=0)[:, :3]
+        self.set_3D_plot_axis_limits(ax, all_points)
+
+        lines = []
+        points = []
+        quivers = []
+
+        for traj in list_trajectories:
+            line, = ax.plot([], [], [], 'r-', label='Trajectory')
+            point, = ax.plot([], [], [], 'bo')
+            lines.append(line)
+            points.append(point)
+
+        def init():
+            for line, point in zip(lines, points):
+                line.set_data([], [])
+                line.set_3d_properties([])
+                point.set_data([], [])
+                point.set_3d_properties([])
+            return lines + points + quivers
+
+        def update(num):
+            for i, (line, point) in enumerate(zip(lines, points)):
+                line.set_data(list_trajectories[i][:num+1, 0], list_trajectories[i][:num+1, 1])
+                line.set_3d_properties(list_trajectories[i][:num+1, 2])
+                point.set_data(list_trajectories[i][num:num+1, 0], list_trajectories[i][num:num+1, 1])
+                point.set_3d_properties(list_trajectories[i][num:num+1, 2])
+                for q in quivers:
+                    q.remove()
+                quivers[:] = self.plot_coordinate_frame(ax, list_trajectories[i][num], size=0.05, linewidth=1)
+            return lines + points + quivers
+
+        ani = FuncAnimation(self.fig, update, frames=len(list_trajectories[0]), init_func=init, blit=False, interval=interval)
+        return ani
