@@ -9,7 +9,7 @@ class PlotTraj3D(object):
     def __init__(self, fig_size=(15, 8)):
         print("3D_traj_plot.py is being run directly")
         self.fig = plt.figure(figsize=fig_size)
-        self.fig.subplots_adjust(left=0.036, bottom=0.042, right=0.98, top=0.96, wspace=0.1, hspace=0.233)
+        self.fig.subplots_adjust(left=0.036, bottom=0.042, right=0.98, top=0.96, wspace=0.1, hspace=0.3)
 
         self.subplots = []
     
