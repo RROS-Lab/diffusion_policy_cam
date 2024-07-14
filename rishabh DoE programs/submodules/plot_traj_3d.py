@@ -6,14 +6,14 @@ import pandas as pd
 from matplotlib.animation import FuncAnimation
 
 class PlotTraj3D(object):
-    def __init__(self):
+    def __init__(self, fig_size=(15, 8)):
         print("3D_traj_plot.py is being run directly")
-        self.fig = plt.figure(figsize=(15, 8))
-        self.fig.subplots_adjust(left=0.036, bottom=0.042, right=0.98, top=0.96, wspace=0, hspace=0.233)
-        self.subplots = []
+        self.fig = plt.figure(figsize=fig_size)
+        self.fig.subplots_adjust(left=0.036, bottom=0.042, right=0.98, top=0.96, wspace=0.1, hspace=0.233)
 
+        self.subplots = []
     
-    def add_subplot(self, rci, **kwargs):
+    def add_subplot(self, r, c, i, **kwargs):
         ''' 
         rci -> rows, columns, index \n
         kwargs -> title, limits, projection, lables \n
@@ -21,15 +21,19 @@ class PlotTraj3D(object):
         output -> ax\n
         '''
         title = kwargs.get('title', "")
+        suptitle = kwargs.get('suptitle', "")
         limits = kwargs.get('limits', ())
         projection = kwargs.get('projection', 'rectilinear')
         lables = kwargs.get('lables', [])
         '''rci -> rows, columns, index'''
-        _ax = self.fig.add_subplot(rci, projection=projection)
-        _params = {'ax': _ax, 'index': rci,
+        _ax = self.fig.add_subplot(r, c, i, projection=projection)
+        _params = {'ax': _ax, 'index': (r, c, i),
                    'limits': limits, 'title': title, 'projection': projection}
         if title:
             _ax.set_title(title)
+
+        if suptitle:
+            plt.suptitle(suptitle)
             
         if projection == '3d':
             _ax.set_box_aspect([1, 1, 1])
@@ -125,12 +129,14 @@ class PlotTraj3D(object):
         # nodes and frames are equally spaced points on the path
         nodes = path[::density]
         frames = traj[::density]
-        cls.plot_path(ax1, path)
-        cls.plot_nodes(ax1, nodes)
-        cls.plot_geometric_path(ax1, frames, size=0.03, linewidth=1)
-        cls.plot_motion_xyz(ax2, traj)
-        cls.plot_motion_rpy(ax3, traj)
-        cls.plot_motion_quat(ax4, traj)
+        if ax1:
+            cls.plot_path(ax1, path)
+            cls.plot_nodes(ax1, nodes)
+            cls.plot_geometric_path(ax1, frames, size=0.03, linewidth=1)
+        
+        if ax2: cls.plot_motion_xyz(ax2, traj)
+        if ax3: cls.plot_motion_rpy(ax3, traj)
+        if ax4: cls.plot_motion_quat(ax4, traj)
 
 
     @classmethod
@@ -161,8 +167,7 @@ class PlotTraj3D(object):
         self.plot_single_traj(ax1, ax2, ax3, ax4, traj, density=density)
     
     
-    def animate_trajectory(self, traj: np.ndarray[np.ndarray[7]], interval: int = 100) -> FuncAnimation:
-        ax = self.add_subplot(121, projection='3d', title='3D Spline Trajectory', labels=['X', 'Y', 'Z'])
+    def animate_trajectory(self, ax, traj: np.ndarray[np.ndarray[7]], interval: int = 100) -> FuncAnimation:
         self.set_3D_plot_axis_limits(ax, traj[:, :3])
 
         line, = ax.plot([], [], [], 'r-', label='Trajectory')
@@ -183,31 +188,39 @@ class PlotTraj3D(object):
             point.set_3d_properties(traj[num:num+1, 2])
             for q in quivers:
                 q.remove()
-            quivers[:] = self.plot_coordinate_frame(ax, traj[num], size=0.05, linewidth=1)
+            quivers[:] = self.plot_coordinate_frame(ax, traj[num], size=0.03, linewidth=2)
             return [line, point] + quivers
 
         ani = FuncAnimation(self.fig, update, frames=len(traj), init_func=init, blit=False, interval=interval)
         return ani
 
-    def animate_multiple_trajectories(self, list_trajectories: list[np.ndarray], interval: int = 100) -> FuncAnimation:
+    def animate_multiple_trajectories(self, ax, list_trajectories: list[np.ndarray], interval: int = 100, **kwargs) -> FuncAnimation:
         """
             Animate multiple 3D trajectories.
 
             Parameters:
             list_trajectories (list[np.ndarray]): A list of 3D trajectories, each represented as a numpy array.
             interval (int, optional): The interval between frames in milliseconds. Default is 100.
-
+            **kwargs:
+            _qline_width =  kwargs.get('quiver_line_width', 1)
+            _qsize = kwargs.get('quiver_size', 0.1)
+            _pline_width = kwargs.get('path_line_width', 0.5)
             Returns:
             FuncAnimation: The animation object for the trajectories.
         """
-        ax = self.add_subplot(111, projection='3d', title='3D Spline Trajectories', labels=['X', 'Y', 'Z'])
+        # ax = self.add_subplot(111, projection='3d', title='3D Spline Trajectories', labels=['X', 'Y', 'Z'])
+        
         # Concatenate all trajectory points into a single array for setting plot limits
-        all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
-        # Set axis limits based on the collected points
-        self.set_3D_plot_axis_limits(ax, all_points)
+        # all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
+        # # Set axis limits based on the collected points
+        # self.set_3D_plot_axis_limits(ax, all_points)
 
         # Initialize lines for each trajectory, empty at first, with a specific style and label
-        lines = [ax.plot([], [], [], 'r-', linewidth=0.5, label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
+        _qline_width =  kwargs.get('quiver_line_width', 1)
+        _qsize = kwargs.get('quiver_size', 0.1)
+        _pline_width = kwargs.get('path_line_width', 0.5)
+
+        lines = [ax.plot([], [], [], 'r-', linewidth=_pline_width, label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
 
         # Initialize marker points for each trajectory, empty at first
         points = [ax.plot([], [], [], 'bo')[0] for _ in list_trajectories]
@@ -259,7 +272,7 @@ class PlotTraj3D(object):
 
                 # Add new quivers if orientation data is available
                 if traj.shape[1] > 3:  # Check for orientation data
-                    quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=0.1, linewidth=1))
+                    quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=_qsize, linewidth=_qline_width))
             # Return a list of all artists that need to be redrawn
             return lines + points + [item for sublist in quivers_lists for item in sublist]
 

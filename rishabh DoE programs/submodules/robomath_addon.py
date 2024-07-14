@@ -73,8 +73,13 @@ def normalize_eulers(angles: np.ndarray) -> np.ndarray:
     Convert a sequence of euler angles (in range -pi to pi) continuous and differentiable to ensure smooth transitions.
     Note: The angles can exceed the range [-pi, pi) after smoothing.
     """
-    angles = np.unwrap(angles)
+    rows, cols = angles.shape
+
+    for col in range(cols):
+        angles[:, col] = np.unwrap(angles[:, col])
+    
     return angles
+    
 
 
 
