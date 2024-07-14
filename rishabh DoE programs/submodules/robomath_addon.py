@@ -1,15 +1,15 @@
 import submodules.robomath as rm
 import numpy as np
 
-def quaternion_2_euler(qin : np.ndarray | list) -> np.ndarray:
-    # output is in radians
-    _pose = rm.quaternion_2_pose(qin)
-    _eul = rm.pose_2_xyzrpw(_pose)
-    _eul = np.array(_eul[3:])
-    _eul = _eul*np.pi/180 #convert to radians
+# def quaternion_2_euler(qin : np.ndarray | list) -> np.ndarray:
+#     # output is in radians
+#     _pose = rm.quaternion_2_pose(qin)
+#     _eul = rm.pose_2_xyzrpw(_pose)
+#     _eul = np.array(_eul[3:])
+#     _eul = _eul*np.pi/180 #convert to radians
     
-    # _eul = convert_theta_to_pi_range(_eul) #normalize the angles from -pi to pi # TODO: comment out
-    return _eul
+#     # _eul = convert_theta_to_pi_range(_eul) #normalize the angles from -pi to pi # TODO: comment out
+#     return _eul
 
 def TxyzQwxyz_2_Pose(XYZwxyz: list | np.ndarray) -> rm.Mat:
     '''
@@ -29,11 +29,19 @@ def Pose_2_TxyzQwxyz(pose: rm.Mat) -> np.ndarray:
 
 
 def TxyzRxyz_2_TxyzQwxyz(XYZrpy: list | np.ndarray) -> np.ndarray:
-    #NOTE - Rxyz is in degrees
+    '''**Rxyz in radians**
+    param xyzrpw: [x,y,z,rx,ry,rz] in m/mm and radians
+    return: [x,y,z,w,x,y,z] i.e. position and quaternion
+    '''
     return Pose_2_TxyzQwxyz(rm.TxyzRxyz_2_Pose(XYZrpy))
 
+
 def TxyzQwxyz_2_TxyzRxyz(XYZwxyz: list | np.ndarray) -> np.ndarray:
-    #NOTE - Rxyz is in degrees
+    '''
+    **Rxyz in radians**
+    param pose: [x,y,z,w,x,y,z] i.e. position and quaternion
+    return: [x,y,z,rx,ry,rz] in m/mm and radians
+    '''
     return rm.Pose_2_TxyzRxyz(TxyzQwxyz_2_Pose(XYZwxyz))
 
 

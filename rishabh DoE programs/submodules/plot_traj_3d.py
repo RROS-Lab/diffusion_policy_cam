@@ -57,8 +57,10 @@ class PlotTraj3D(object):
     def plot_motion_rpy(ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
         ax.grid(True)
         ax.set_facecolor('lightgray')
-        #apply 
 
+        #apply rma.TxyzQwxyz_2_TxyzRxyz to get the euler angles to all rows
+        euler_path = rma.TxyzQwxyz_2_TxyzRxyz(geometric_path[0])
+        
         ax.set_title('YPR')
         ax.plot(euler_path[:, 3], color='orange')
         ax.plot(euler_path[:, 4], color='magenta')

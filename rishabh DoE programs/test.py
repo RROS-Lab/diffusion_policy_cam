@@ -12,6 +12,8 @@ C_TxyzQwxyz = np.concatenate([np.array(CXYZ).reshape(-1, 3), np.array(Cwxyz).res
 G_TxyzQwxyz = np.concatenate([np.array(GXYZ).reshape(-1, 3), np.array(Gwxyz).reshape(-1, 4)], axis=1)
 B_TxyzQwxyz = np.concatenate([np.array(BXYZ).reshape(-1, 3), np.array(Bwxyz).reshape(-1, 4)], axis=1)
 
+C_TxyzQwxyz = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, C_TxyzQwxyz)
+
 A1_Txyz = np.array(A1XYZ).reshape(-1, 3)
 A2_Txyz = np.array(A2XYZ).reshape(-1, 3)
 A3_Txyz = np.array(A3XYZ).reshape(-1, 3)
