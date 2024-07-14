@@ -187,21 +187,15 @@ class PlotTraj3D(object):
 
         ani = FuncAnimation(self.fig, update, frames=len(traj), init_func=init, blit=False, interval=interval)
         return ani
-    
-    def animate_multiple_trajectories(self, list_trajectories:list[np.ndarray[np.ndarray[7]]], interval: int = 100) -> FuncAnimation:
-        ax = self.add_subplot(121, projection='3d', title='3D Spline Trajectory', labels=['X', 'Y', 'Z'])
-        all_points = np.concatenate(list_trajectories, axis=0)[:, :3]
+
+    def animate_multiple_trajectories(self, list_trajectories: list[np.ndarray] , interval: int = 100) -> FuncAnimation:
+        ax = self.add_subplot(111, projection='3d', title='3D Spline Trajectories', labels=['X', 'Y', 'Z'])
+        all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
         self.set_3D_plot_axis_limits(ax, all_points)
 
-        lines = []
-        points = []
-        quivers = []
-
-        for traj in list_trajectories:
-            line, = ax.plot([], [], [], 'r-', label='Trajectory')
-            point, = ax.plot([], [], [], 'bo')
-            lines.append(line)
-            points.append(point)
+        lines = [ax.plot([], [], [], 'r-', label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
+        points = [ax.plot([], [], [], 'bo')[0] for _ in list_trajectories]
+        quivers_lists = [[] for _ in list_trajectories]  # Each trajectory can have its own set of quivers
 
         def init():
             for line, point in zip(lines, points):
@@ -209,18 +203,31 @@ class PlotTraj3D(object):
                 line.set_3d_properties([])
                 point.set_data([], [])
                 point.set_3d_properties([])
-            return lines + points + quivers
+            for quiver_list in quivers_lists:
+                for q in quiver_list:
+                    q.remove()
+                quiver_list.clear()  # Clear the list after removing quivers
+            return lines + points + [item for sublist in quivers_lists for item in sublist]
 
         def update(num):
-            for i, (line, point) in enumerate(zip(lines, points)):
-                line.set_data(list_trajectories[i][:num+1, 0], list_trajectories[i][:num+1, 1])
-                line.set_3d_properties(list_trajectories[i][:num+1, 2])
-                point.set_data(list_trajectories[i][num:num+1, 0], list_trajectories[i][num:num+1, 1])
-                point.set_3d_properties(list_trajectories[i][num:num+1, 2])
-                for q in quivers:
+            for i, (line, point, quiver_list) in enumerate(zip(lines, points, quivers_lists)):
+                traj = list_trajectories[i]
+                line.set_data(traj[:num + 1, 0], traj[:num + 1, 1])
+                line.set_3d_properties(traj[:num + 1, 2])
+                point.set_data(traj[num:num + 1, 0], traj[num:num + 1, 1])
+                point.set_3d_properties(traj[num:num + 1, 2])
+
+                # Correctly handle quivers
+                # Remove old quivers properly
+                while quiver_list:
+                    q = quiver_list.pop()
                     q.remove()
-                quivers[:] = self.plot_coordinate_frame(ax, list_trajectories[i][num], size=0.05, linewidth=1)
-            return lines + points + quivers
+
+                # Add new quivers
+                if traj.shape[1] > 3:  # Check for orientation data
+                    quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=0.1, linewidth=1))
+            return lines + points + [item for sublist in quivers_lists for item in sublist]
 
         ani = FuncAnimation(self.fig, update, frames=len(list_trajectories[0]), init_func=init, blit=False, interval=interval)
         return ani
+    

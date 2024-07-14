@@ -54,6 +54,9 @@ if __name__ == '__main__':
     plotter = PlotTraj3D()
     traj = C_TxyzQwxyz
     # ani = plotter.animate_trajectory(traj)
-    ani = plotter.animate_multiple_trajectories([C_TxyzQwxyz, G_TxyzQwxyz, B_TxyzQwxyz])
-    ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=60)
+    ani = plotter.animate_multiple_trajectories(
+                                                list_trajectories=[C_TxyzQwxyz, G_TxyzQwxyz, A1_Txyz, A2_Txyz, A3_Txyz, B1_Txyz, B2_Txyz, B3_Txyz, C1_Txyz, C2_Txyz, C3_Txyz],
+                                                interval=50
+                                                )
+    ani.save('trajectory_animation.mp4', writer='ffmpeg', fps=30)
     plt.show()
