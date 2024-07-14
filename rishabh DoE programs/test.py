@@ -5,18 +5,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-file_path = './../datasets/Chisel_problem/30/cleaned_test_data/test_149_cleaned.csv'
-CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data_chisel(file_path=file_path)
+file_path = './../datasets/Chisel_problem/120/cleaned_test_data/test_142_cleaned.csv'
+CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = mfp.extract_data(file_path=file_path)
 
 
-C_TxyzQwxyz = np.concatenate([np.array(CXYZ).reshape(-1, 3), np.array(Cwxyz).reshape(-1, 4)], axis=1)
-G_TxyzQwxyz = np.concatenate([np.array(GXYZ).reshape(-1, 3), np.array(Gwxyz).reshape(-1, 4)], axis=1)
-B_TxyzQwxyz = np.concatenate([np.array(BXYZ).reshape(-1, 3), np.array(Bwxyz).reshape(-1, 4)], axis=1)
+C_TxyzQwxyz = np.concatenate([np.array(CXYZ), np.array(Cwxyz)], axis=1)
+G_TxyzQwxyz = np.concatenate([np.array(GXYZ), np.array(Gwxyz)], axis=1)
+B_TxyzQwxyz = np.concatenate([np.array(BXYZ), np.array(Bwxyz)], axis=1)
 
 #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
-
-
-
 
 A1_Txyz = np.array(A1XYZ).reshape(-1, 3)
 A2_Txyz = np.array(A2XYZ).reshape(-1, 3)
@@ -35,15 +32,15 @@ if __name__ == '__main__':
                             title='3D Spline Trajectory', 
                             lables=['X', 'Y', 'Z'])
     
-    ALL_POINTS = np.concatenate([C_TxyzQwxyz[:, 0:3], G_TxyzQwxyz[:, 0:3], B_TxyzQwxyz[:, 0:3], A1_Txyz, A2_Txyz, A3_Txyz, B1_Txyz, B2_Txyz, B3_Txyz, C1_Txyz, C2_Txyz, C3_Txyz], axis=0)
+    ALL_POINTS = np.concatenate([C_TxyzQwxyz[:, 0:3], G_TxyzQwxyz[:, 0:3], B_TxyzQwxyz[:, 0:3], A1_Txyz, A2_Txyz, A3_Txyz, B1_Txyz, B2_Txyz, B3_Txyz, C1_Txyz, C2_Txyz, C3_Txyz], axis=0) 
     
     plot.set_3D_plot_axis_limits(ax1, ALL_POINTS)
 
     ax2 = plot.add_subplot(333)
     ax3 = plot.add_subplot(336)
     ax4 = plot.add_subplot(339)
-    plot.plot_single_traj(ax1, ax2, ax3, ax4, C_TxyzQwxyz, density=10)
-    plot.plot_single_traj(ax1, ax2, ax3, ax4, G_TxyzQwxyz, density=10)
+    plot.plot_single_traj(ax1, ax2, ax3, ax4, C_TxyzQwxyz, density=100)
+    plot.plot_single_traj(ax1, ax2, ax3, ax4, G_TxyzQwxyz, density=100)
 
     markers = np.array([A1_Txyz[0], A2_Txyz[0], A3_Txyz[0], B1_Txyz[0], B2_Txyz[0], B3_Txyz[0], C1_Txyz[0], C2_Txyz[0], C3_Txyz[0]])
     plot.plot_nodes(ax1, nodes=markers)

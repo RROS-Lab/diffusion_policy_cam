@@ -78,13 +78,19 @@ def normalize_eulers(angles: np.ndarray) -> np.ndarray:
 
 
 
-def motive_2_robodk(XYZwxyz : list|np.ndarray) -> np.ndarray:
+def motive_2_robodk_rigidbody(XYZwxyz : list|np.ndarray) -> np.ndarray:
     """
-    Convert motive quaternions to RoboDK quaternions.
+    Convert motive frame to RoboDK frame.
     """
     X = XYZwxyz[0]; Y = XYZwxyz[1]; Z = XYZwxyz[2]; w = XYZwxyz[3]; x = XYZwxyz[4]; y = XYZwxyz[5]; z = XYZwxyz[6]
     return [Z, X, Y, w, z, x, y]
 
+def motive_2_robodk_marker(XYZ : list|np.ndarray) -> np.ndarray:
+    """
+    Convert motive frame to RoboDK frame.
+    """
+    X = XYZ[0]; Y = XYZ[1]; Z = XYZ[2]
+    return [Z, X, Y]
 
 def robodk_2_motive(XYZwxyz : list|np.ndarray) -> np.ndarray:
     """
