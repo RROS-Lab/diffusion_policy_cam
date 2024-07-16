@@ -109,6 +109,8 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     data = pd.read_csv(csv_path , header = 1)
     name = csv_path.split('/')[-1]
     file = re.sub(r'\.csv', '_cleaned.csv', name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     file_path = os.path.join(save_path, file)
     data = data.drop(index =1)
     data = data.reset_index(drop=True)

@@ -19,12 +19,6 @@ class DataParser:
     """
         Cleaned DATA parser.
     """
-    def __init__(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        self.data = process_data(pd.read_csv(file_path), fps, filter, window_size, polyorder)
-        self.markers = set()
-        self.rigid_bodies = set()
-        self.tools = set()
-        self.__extract_column_info__()
 
     def __extract_column_info__(self):
         # Extract unique marker, rigid body, and tool names
@@ -60,7 +54,7 @@ class DataParser:
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
             
             # Select processing method based on data type and column length
-            if len(self.data[sorted_columns].iloc[0]) == 7:
+            if self.file_type == 'QUAT':
                 if data_type == 'QUAT':
                     print('QUAT')
                     rb_TxyzQR[rb] = self.data[sorted_columns].values.astype(float)
@@ -75,7 +69,7 @@ class DataParser:
                     # print(valaa)
                     # print(rb_TxyzQR[rb][0])
 
-            else:
+            elif self.file_type == 'EULER':
                 if data_type == 'QUAT':
                     rb_TxyzQR[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
                 elif data_type == 'EULER':
@@ -125,12 +119,12 @@ class DataParser:
             sorted_columns = sorted(tcp_columns, key=lambda x: x.split('_')[1])
             
             # Select processing method based on data type and column length
-            if len(self.data[sorted_columns].iloc[0]) == 7:
+            if self.file_type == 'QUAT':
                 if data_type == 'QUAT':
                     tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
                 elif data_type == 'EULER':
                     tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
-            else:
+            elif self.file_type == 'EULER':
                 if data_type == 'QUAT':
                     tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
                 elif data_type == 'EULER':
@@ -138,3 +132,20 @@ class DataParser:
 
         return tcp_TxyzQR
     
+    @classmethod
+    def for_eular_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        file_type = 'EULER'
+        return DataParser(file_path, file_type, fps, filter, window_size, polyorder)
+    
+    @classmethod
+    def for_quat_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        file_type = 'QUAT'
+        return DataParser(file_path, file_type, fps, filter, window_size, polyorder)
+
+    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        self.data = process_data(pd.read_csv(file_path), fps, filter, window_size, polyorder)
+        self.markers = set()
+        self.rigid_bodies = set()
+        self.tools = set()
+        self.file_type  = file_type
+        self.__extract_column_info__()

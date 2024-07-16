@@ -83,7 +83,6 @@ def normalize_eulers(angles: np.ndarray) -> np.ndarray:
     
     return angles
     
-
 def motive_2_robodk_rigidbody(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
     """
     Convert motive frame to RoboDK frame.
