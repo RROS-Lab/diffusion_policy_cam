@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import submodules.robomath as rm
 import submodules.robomath_addon as rma
-import submodules.motive_file_cleaner as mfp
+import submodules.motive_file_cleaner as mfc
 
 # def euler_change_rishabh(Gwxyz) : #receives a list of quaternions
 #     eulers = rma.quaternions_2_eulers(Gwxyz) #reshape the quaternions to a 2D array
@@ -34,30 +34,30 @@ import submodules.motive_file_cleaner as mfp
 
 
 print("..........")
-path_name = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_handover_task/Supporting Data - Sheet1.csv"
-metadata = pd.read_csv(path_name)
-base_path = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_handover_task/traj/"
-_columns = metadata.columns
-exps_metadata = {}
-count = 0
-for i in range(len(metadata)):
-    if metadata[_columns[3]][i] == 'accept':
-        exps_metadata[count] = {
-            'Path': base_path + str(metadata[_columns[0]][i]) + '.csv',
-            'start_frame': int(metadata[_columns[1]][i]),
-            'end_frame': int(metadata[_columns[2]][i]),
-            'Note': metadata[_columns[4]][i]
-        }
-        count += 1
+# path_name = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_handover_task/Supporting Data - Sheet1.csv"
+# metadata = pd.read_csv(path_name)
+# base_path = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_handover_task/traj/"
+# _columns = metadata.columns
+# exps_metadata = {}
+# count = 0
+# for i in range(len(metadata)):
+#     if metadata[_columns[3]][i] == 'accept':
+#         exps_metadata[count] = {
+#             'Path': base_path + str(metadata[_columns[0]][i]) + '.csv',
+#             'start_frame': int(metadata[_columns[1]][i]),
+#             'end_frame': int(metadata[_columns[2]][i]),
+#             'Note': metadata[_columns[4]][i]
+#         }
+#         count += 1
 
 
 
-for key in exps_metadata:
-    mfp.motive_handover_task_cleaner(
-                                    csv_path = exps_metadata[key]['Path'],
-                                    start_frame = exps_metadata[key]['start_frame'],
-                                    end_frame = exps_metadata[key]['end_frame']
-                                    )
+# for key in exps_metadata:
+#     mfp.motive_handover_task_cleaner(
+#                                     csv_path = exps_metadata[key]['Path'],
+#                                     start_frame = exps_metadata[key]['start_frame'],
+#                                     end_frame = exps_metadata[key]['end_frame']
+#                                     )
 
 
 
@@ -84,3 +84,14 @@ for key in exps_metadata:
 #     _data= extract_data(exps_metadata[key])
 #     print(_data)
 #     # create_xy_video(_data['GP'], _data['BxP'], _data['SP'], fps=30, video_filename=f'videos/output_{key}.avi', marker_list=['o', 'x', '*'])
+
+
+dir_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/cap_008.csv'
+save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/'
+
+# for file in os.listdir(dir_path):
+#     if file.endswith(".csv"):
+#         print(file)
+mfc.motive_chizel_task_cleaner(
+    csv_path = dir_path, save_path=save_path
+)

@@ -2,6 +2,7 @@ import pandas as pd
 import regex as re
 import numpy as np
 from submodules import data_filter as df
+import os
 
 def motive_handover_task_cleaner(csv_path:str,
                  start_frame: int, end_frame: int) -> None:
@@ -11,7 +12,6 @@ def motive_handover_task_cleaner(csv_path:str,
     end_frame: int
 
     create a new csv file with the cleaned data
-
     '''
     filter_keys = {
                 'GR': 'GRIPPER_2_Rotation',
@@ -96,18 +96,20 @@ def motive_handover_task_cleaner(csv_path:str,
 
 
 
-def motive_chizel_task_cleaner(csv_path:str) -> None:
+def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     '''
     csv_path: str
     start_frame: int
     end_frame: int
 
-    create a new csv file with the cleaned data
+    create a new csv file with the cleaned data in robodk frame
 
     '''
     dict_of_lists = {}
     data = pd.read_csv(csv_path , header = 1)
-    file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
+    name = csv_path.split('/')[-1]
+    file = re.sub(r'\.csv', '_cleaned.csv', name)
+    file_path = os.path.join(save_path, file)
     data = data.drop(index =1)
     data = data.reset_index(drop=True)
 
@@ -122,13 +124,11 @@ def motive_chizel_task_cleaner(csv_path:str) -> None:
             colums_val.append(index)
         if str(val).startswith('RigidBody') and 'Marker'  not in str(val) and 'Rotation' not in str(val1):
             colums_val.append(index)
-
             
     unlabled_data = data.iloc[:,colums_val]
 
     for idx in range(0, len(unlabled_data.columns), 3):
         col_name = unlabled_data.iloc[0, idx]
-        # print(col_name)
         if col_name.startswith('RigidBody'):
             x = float(unlabled_data.iloc[150, idx])
             y = float(unlabled_data.iloc[150, idx + 1])
@@ -136,18 +136,13 @@ def motive_chizel_task_cleaner(csv_path:str) -> None:
             battery_coo = [x, y, z]
 
         if col_name.startswith('Unlabeled'):
-            # dist_col_name = f'battery_{col_name}_Distance'
             x = float(unlabled_data.iloc[150, idx])
-            # X.append(x)
             y = float(unlabled_data.iloc[150, idx + 1])
             z = float(unlabled_data.iloc[150, idx + 2])
-            # Y.append(z)
             point = [x, y, z]
             dict_of_lists[col_name] = point
-            # dict_of_lists.append(point)
             
     filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
-        
 
     P = np.array(battery_coo)
 
@@ -218,4 +213,4 @@ def motive_chizel_task_cleaner(csv_path:str) -> None:
     data = data.drop(index =2)
     data = data.drop(index =3)
     data = data.reset_index(drop=True)
-    data.to_csv(f'{file}', index=False)
+    data.to_csv(f'{file_path}', index=False)
