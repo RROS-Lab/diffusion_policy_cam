@@ -1,7 +1,7 @@
 import pandas as pd
 import regex as re
 import numpy as np
-from submodules import data_filter as df
+import submodules.data_filter as _df
 import os
 
 def motive_handover_task_cleaner(csv_path:str,
@@ -11,7 +11,7 @@ def motive_handover_task_cleaner(csv_path:str,
     start_frame: int
     end_frame: int
 
-    create a new csv file with the cleaned data
+    create a new csv file with the cleaned dataS
     '''
     filter_keys = {
                 'GR': 'GRIPPER_2_Rotation',
@@ -216,4 +216,5 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     data = data.drop(index =3)
     data = data.dropna()
     data = data.reset_index(drop=True)
+    data = _df.axis_transformation(data, {'x': 'z', 'y': 'x', 'z': 'y'})
     data.to_csv(f'{file_path}', index=False)
