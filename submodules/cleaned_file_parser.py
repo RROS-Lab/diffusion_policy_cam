@@ -6,11 +6,11 @@ from typing import Union
 
 
 def process_data(data :pd.DataFrame,
-                    fps: float = 30.0, filter: bool = False, 
-                    window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
+                 fps: float = 30.0, filter: bool = False,
+                 window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
     
 
-    _new_data = _df.fps_sampler(data, target_fps = fps)
+    _new_data = _df.fps_sampler(data, target_fps = fps, input_fps=120)
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
     return _new_data
@@ -132,15 +132,37 @@ class DataParser:
 
         return tcp_TxyzQR
     
-    @classmethod
-    def for_eular_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        file_type = 'EULER'
-        return DataParser(file_path, file_type, fps, filter, window_size, polyorder)
+
+    
     
     @classmethod
-    def for_quat_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        file_type = 'QUAT'
-        return DataParser(file_path, file_type, fps, filter, window_size, polyorder)
+    def from_euler_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        TxyzRxyz = {} # Dictionary to store processed data
+
+        for tcp in self.tools: # TODO - not tools
+            tcp_columns = [col for col in self.data.columns if col.startswith(tcp)]
+            sorted_columns = sorted(tcp_columns, key=lambda x: x.split('_')[1])
+            
+            # Select processing method based on data type and column length
+            if self.file_type == 'QUAT':
+                if data_type == 'QUAT':
+                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
+                elif data_type == 'EULER':
+                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
+            elif self.file_type == 'EULER':
+                if data_type == 'QUAT':
+                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
+                elif data_type == 'EULER':
+                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
+
+        return tcp_TxyzQR
+        return DataParser(file_path, 'EULER', fps, filter, window_size, polyorder)
+    
+
+    
+    @classmethod
+    def from_quat_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        return DataParser(file_path, 'QUAT', fps, filter, window_size, polyorder)
 
     def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
         self.data = process_data(pd.read_csv(file_path), fps, filter, window_size, polyorder)
