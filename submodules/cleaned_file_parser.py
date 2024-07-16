@@ -6,7 +6,6 @@ import numpy as np
 import submodules.data_filter as _df
 from typing import Union
 
-
 def process_data(data :pd.DataFrame,
                  fps: float = 30.0, filter: bool = False,
                  window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
@@ -16,6 +15,7 @@ def process_data(data :pd.DataFrame,
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
     return _new_data
+
 
 class DataParser:
     """
@@ -138,9 +138,9 @@ class DataParser:
 
     def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
         self.data = process_data(pd.read_csv(file_path), target_fps, filter, window_size, polyorder)
+        self.fps = target_fps
         self.markers = set()
         self.rigid_bodies = set()
-        self.tools = set()
         self.file_type = file_type
         self.__extract_column_info__()
 
