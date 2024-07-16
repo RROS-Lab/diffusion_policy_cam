@@ -53,8 +53,6 @@ def axis_transformation(data_frame: pd.DataFrame, transformation: dict) -> pd.Da
     data.columns = data.iloc[0]
     new_cols = {}
 
-    # Dictionary to map suffix transformations
-    transformations = {'x': 'z', 'y': 'x', 'z': 'y'}
 
     # Dictionary to store renamed columns
     # new_cols = {}
@@ -65,8 +63,8 @@ def axis_transformation(data_frame: pd.DataFrame, transformation: dict) -> pd.Da
         match = re.search(r'_(.)$', col)
         if match:
             suffix = match.group(1)
-            if suffix.lower() in transformations:
-                new_suffix = transformations[suffix.lower()]
+            if suffix.lower() in transformation:
+                new_suffix = transformation[suffix.lower()]
                 # Preserve the original case of the suffix
                 new_suffix = new_suffix.upper() if suffix.isupper() else new_suffix.lower()
             else:
