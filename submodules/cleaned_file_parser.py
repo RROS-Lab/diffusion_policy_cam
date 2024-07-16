@@ -1,9 +1,9 @@
 import pandas as pd
 # import submodules.robomath_addon as rma
-import robomath_addon as rma
+import submodules.robomath_addon as rma
 import numpy as np
 # import submodules.data_filter as _df
-import data_filter as _df
+import submodules.data_filter as _df
 from typing import Union
 
 
@@ -29,9 +29,6 @@ class DataParser:
         rigid_body_columns = [col for col in self.data.columns if 'RigidBody' in col]
         self.rigid_bodies = {value.split('_')[0] for value in self.data[rigid_body_columns].iloc[0]}
         # self.rigid_bodies = {val.split('_')[0] for column in self.data.columns if column.startswith('RigidBody') for val in self.data[column].iloc[0]}
-        tool_columns = [col for col in self.data.columns if 'Tool' in col]
-        self.tools = {value.split('_')[0] for value in self.data[tool_columns].iloc[0]}
-        # self.tools = {val.split('_')[0] for column in self.data.columns if column.startswith('Tool') for val in self.data[column].iloc[0]}
         self.data.columns = self.data.iloc[0]
         self.data = self.data.drop(index =0)
 
@@ -60,7 +57,7 @@ class DataParser:
                 rb_TxyzQwxyz[rb] = self.data[sorted_columns].values.astype(float)
 
             elif self.file_type == 'EULER':
-                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
+                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
 
         for key, value in kwargs.items():
             if key == 'object':
@@ -88,7 +85,7 @@ class DataParser:
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
-                rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
+                rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
             elif self.file_type == 'EULER':
                 rb_TxyzRxyz[rb] = self.data[sorted_columns].values.astype(float)
 
