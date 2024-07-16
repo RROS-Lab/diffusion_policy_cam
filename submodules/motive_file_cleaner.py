@@ -214,5 +214,6 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     data = data.drop(index =1)
     data = data.drop(index =2)
     data = data.drop(index =3)
+    data = data.dropna()
     data = data.reset_index(drop=True)
     data.to_csv(f'{file_path}', index=False)
