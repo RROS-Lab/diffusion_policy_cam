@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.signal import savgol_filter
+from typing import Union
 
 def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float = 240.0) ->pd.DataFrame:
     """
@@ -54,9 +55,6 @@ def axis_transformation(data_frame: pd.DataFrame, transformation: dict) -> pd.Da
     new_cols = {}
 
 
-    # Dictionary to store renamed columns
-    # new_cols = {}
-
     # Loop through each column name
     for col in data.columns:
         # Regular expression to match and replace patterns
@@ -80,3 +78,49 @@ def axis_transformation(data_frame: pd.DataFrame, transformation: dict) -> pd.Da
     data.columns = colls
 
     return data
+
+def indexer(data_frame: pd.DataFrame, start_frame: int, end_frame: int) -> pd.DataFrame:
+    """
+    Args : data frame
+    start_frame : int
+    end_frame : int
+    Returns the data frame with the rows from start_frame to end_frame
+    """
+    data = data_frame.copy()
+    data = data.iloc[start_frame:end_frame]
+    data = data.dropna()
+    data = data.reset_index(drop=True)
+    return data
+
+def episode_splitter(data_frame: pd.DataFrame, episode_length: Union(list, np.array)) -> dict:
+    """
+    Args : data frame
+    episode_length : int
+    Returns a list of data frames with each data frame having the length of episode_length
+    """
+    data = data_frame.copy()
+    episodes = {}
+    for i in range(len(episode_length)-1):
+        episodes[f'Traj_{i}'](data.iloc[episode_length[i]:episode_length[i+1]])
+
+    return episodes
+
+def episode_combiner(data_frames: dict) -> (list , list):
+    """
+    Args : dict of data frames
+    Returns a single data frame with all the data frames combined
+    """
+    combined_data = []
+    indexes = []
+    cumulative_count = 0
+
+    # Loop through each key (assuming data_frames is a dictionary)
+    for key in data_frames.keys():
+        combined_data.append(data_frames[key].values)  # Append data as numpy array
+        cumulative_count += len(data_frames[key])
+        # Store cumulative count as index
+        indexes.append(cumulative_count) 
+    combined_data = np.concatenate(combined_data, axis=0)
+
+    return combined_data, indexes
+ 

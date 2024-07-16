@@ -3,6 +3,7 @@ from typing import Tuple, Sequence, Dict, Union, Optional
 import numpy as np
 import pandas as pd
 import math
+import os
 import torch
 import torch.nn as nn
 import collections
@@ -11,8 +12,11 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
 from tqdm.auto import tqdm
-import data_processing as dp
-import model as md
+import submodules.data_filter as _df
+import diffusion_pipline.data_processing as dproc
+import diffusion_pipline.model as md
+import submodules.cleaned_file_parser as cfp
+
 
 
 #@markdown ### **Network Demo**
@@ -73,17 +77,30 @@ _ = noise_pred_net.to(device)
 
 # create dataset from file
 # create dataset from file
-path_name = "/home/cam/Downloads/Supporting Data - Sheet1.csv"
+# path_name = "/home/cam/Downloads/Supporting Data - Sheet1.csv"
 base_path = "/home/cam/Downloads/sean & Li 2 exports/"
-data = pd.read_csv(path_name)
-split_index = int(len(data) * 0.8)
 
-# Split DataFrame
-train_df = data.iloc[:split_index]
-test_df = data.iloc[split_index:]
-test_df.reset_index(drop=True, inplace=True)
+# Load data
+dict_of_df_tool = {}
+dict_of_df_rigid = {}
+dict_of_df_marker = {}
 
-dataset = dp.RealStateDataset(
+
+for file in os.listdir(base_path):
+    if file.endswith(".csv") and file.startswith("cap"):
+        path_name = base_path + file
+        data = cfp.DataParser.for_quat_file(file_path = path_name, filter=True, window_size=15, polyorder=3)
+        dict_of_df_tool[file] = data.get_tool_data(data_type='EULER')
+        dict_of_df_rigid[file] = data.get_rigid_data(data_type='EULER')
+        dict_of_df_marker[file] = data.get_marker_data(data_type='EULER')
+        
+if len(dict_of_df_tool) == len(dict_of_df_rigid) == len(dict_of_df_marker):
+    tooldataset = _df.
+
+
+dataset = dproc.TaskStateDataset()
+
+.RealStateDataset(
     dataset=train_df,
     base_path=base_path,
     pred_horizon=pred_horizon,

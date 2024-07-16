@@ -16,268 +16,7 @@ import torch
 import pandas as pd
 import re
 import random
-# from robodk import robolink    # RoboDK API
-from robomath import *   # Robot toolbox
-
-def distance(current, next):
-    distance = math.sqrt((next[0] - current[0])**2 + (next[1] - current[1])**2 + (next[2] - current[2])**2)
-    return distance
-
-def sampler(data, sample_size):
-    sam = []
-    for i in range(0, len(data)):
-        if i% sample_size == 0:
-            sam.append(data[i])
-    # print(sam)
-    return sam
-
-def quaternion_2_euler(_quat):
-    _pose = quaternion_2_pose(_quat)
-    _eul = pose_2_xyzrpw(_pose)
-    _eul = np.array(_eul[3:])
-
-    _eul = _eul*pi/180 #convert to radians
-    # _eul = normalize_angle(_eul) #normalize the angles from -pi to pi # TODO: comment out
-    return _eul
-
-def smooth_angles_chatgpt(angles):
-    angles = np.unwrap(angles)
-    return angles
-
-def euler_change(Gwxyz) : #receives a list of quaternions
-    quaternions = np.array(Gwxyz) #reshape the quaternions to a 2D array
-    eulers = []
-
-    for _row in range(quaternions.shape[0]):
-        # Create a Rotation object from the quaternion
-        _quat = quaternions[_row]
-        _eul = quaternion_2_euler(_quat) #normalize the angles from -pi to pi # TODO: comment out
-        eulers.append(_eul)
-    
-    eulers = np.array(eulers)
-    smooth_eulers = np.apply_along_axis(smooth_angles_chatgpt, axis=0, arr=eulers)    
-    return smooth_eulers.tolist()
-
-def apply_savgol_filter(df: pd.DataFrame, window_size: int, polyorder: int) -> pd.DataFrame:
-
-    smoothed_df = df.copy()
-    for col in df.columns:
-        smoothed_df[col] = savgol_filter(df[col], window_size, polyorder)
-    return smoothed_df
-
-
-def chisel_data_cleaner(datset_path, base_path, sample):
-
-    for file in os.listdir(datset_path):
-        dict_of_lists = {}
-        X , Y = [], []
-
-        file_path = os.path.join(datset_path, file)
-        data = pd.read_csv(file_path , header = 1)
-        # Define the new file name
-        new_file_name = re.sub(r'\.csv', '_cleaned.csv', os.path.basename(file_path))
-
-        # Create the new file path with the updated folder
-        file_new = os.path.join(base_path, new_file_name)
-        data = data.drop(index =1)
-        data = data.reset_index(drop=True)
-
-        row1 = data.iloc[0]
-        row2 = data.iloc[1]
-        row3 = data.iloc[2]
-        colums_val = []
-
-        for index, (val , val1) in enumerate(zip(row1, row2)):
-            if str(val).startswith('Unlabeled'):
-                colums_val.append(index)
-            if str(val).startswith('RigidBody') and 'Marker'  not in str(val) and 'Rotation' not in str(val1):
-                colums_val.append(index)
-
-        unlabled_data = data.iloc[:,colums_val]
-
-        for idx in range(0, len(unlabled_data.columns), 3):
-            col_name = unlabled_data.iloc[0, idx]
-            if col_name.startswith('RigidBody'):
-                x = float(unlabled_data.iloc[150, idx])
-                y = float(unlabled_data.iloc[150, idx + 1])
-                z = float(unlabled_data.iloc[150, idx + 2])
-                battery_coo = [x, y, z]
-
-            if col_name.startswith('Unlabeled'):
-                x = float(unlabled_data.iloc[150, idx])
-                y = float(unlabled_data.iloc[150, idx + 1])
-                z = float(unlabled_data.iloc[150, idx + 2])
-                point = [x, y, z]
-                dict_of_lists[col_name] = point
-
-        filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
-
-        P = np.array(battery_coo)
-        Points = np.array(filtered_dict)
-
-        vec = {}
-        for key in filtered_dict.keys():
-            vector_ab = P - filtered_dict[key]
-            vec[key] = np.round(vector_ab[0], 2), np.round(vector_ab[2], 2)
-
-        common_values = {
-            'A1': (-0.16, -0.08),
-            'A2': (-0.16, 0.0),
-            'A3': (-0.16, 0.08),
-            'B1': (-0.0, -0.08),
-            'B2': (-0.0, 0.0),
-            'B3': (-0.0, 0.08),
-            'C1': (0.15, -0.08),
-            'C2': (0.15, 0.0),
-            'C3': (0.15, 0.07)}
-
-        matching_keys = {}
-
-        for key, value in vec.items():
-            for common_key, common_value in common_values.items():
-                if value == common_value:
-                    matching_keys[common_key] = key
-                    break
-
-        combined_values = []
-        columns_to_drop = [] 
-
-        for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
-            # print(str(b) + '_' + str(c))
-            if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
-                if 'Marker' in str(a):
-                    columns_to_drop.append(index)
-                elif 'RigidBody' in str(a):
-                    combined_values.append('battery_' + c.lower())
-                else:
-                    combined_values.append(str(a).split("_")[0] + '_' + c.lower())
-            else:
-                if str(a) in matching_keys.values():
-                    combined_values.append(next((key for key, value in matching_keys.items() if value == str(a)), None) + '_' + c)
-                elif 'Marker' in str(a) or 'Active' in str(a):
-                    columns_to_drop.append(index)
-                elif 'RigidBody' in str(a):
-                    combined_values.append('battery_' + c)
-                elif str(a) not in matching_keys.values() and str(a).startswith('Unlabeled'):
-                    columns_to_drop.append(index)
-                else:
-                    combined_values.append(str(a).split("_")[0] + '_' + c)
-                    
-        columns_to_drop.append(0)
-        columns_to_drop.append(1)
-        data = data.drop(data.columns[columns_to_drop], axis=1)
-        data.columns = combined_values[2:]
-        data = data.drop(index =0)
-        data = data.drop(index =1)
-        data = data.drop(index =2)
-        data = data.dropna()
-        data = data.reset_index(drop=True)
-        smoothed_df = {}
-        print(new_file_name)
-        for col in data.columns:
-            asd = sampler(data[col], sample)
-            smoothed_df[col] = savgol_filter(asd, 15, 3)
-
-        smoothed_data = pd.DataFrame(smoothed_df)
-        smoothed_data.to_csv(f'{file_new}', index=False)
-
-
-def extract_data_chisel(data_path):
-
-    CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ = [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
-
-    index = []
-    desired_order = ['chisel_x', 'chisel_y', 'chisel_z', 'chisel_w', 'chisel_X', 'chisel_Y',
-            'chisel_Z', 'gripper_x', 'gripper_y', 'gripper_z', 'gripper_w', 'gripper_X',
-            'gripper_Y', 'gripper_Z', 'battery_x', 'battery_y', 'battery_z', 'battery_w',
-            'battery_X', 'battery_Y', 'battery_Z', 'A1_X', 'A1_Y', 'A1_Z', 'A2_X', 'A2_Y',
-            'A2_Z', 'A3_X', 'A3_Y', 'A3_Z', 'B1_X', 'B1_Y', 'B1_Z', 'B2_X', 'B2_Y', 'B2_Z',
-            'B3_X', 'B3_Y', 'B3_Z', 'C1_X', 'C1_Y', 'C1_Z', 'C2_X', 'C2_Y', 'C2_Z',
-            'C3_X', 'C3_Y', 'C3_Z']
-
-
-    for file in os.listdir(data_path):
-        # print(file)
-
-        file_path = os.path.join(data_path, file)
-        data = pd.read_csv(file_path)
-        dict_of_lists = data.to_dict('list')
-        chisel_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[0]], dict_of_lists[desired_order[1]], dict_of_lists[desired_order[2]])]
-        # chisel_pos = sampler(chisel_pos, sample_size)
-        chisel_rot = [tuple(item) for item in zip(dict_of_lists[desired_order[3]], dict_of_lists[desired_order[4]], dict_of_lists[desired_order[5]], dict_of_lists[desired_order[6]])]
-        # chisel_rot = sampler(chisel_rot, sample_size)
-        gripper_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[7]], dict_of_lists[desired_order[8]], dict_of_lists[desired_order[9]])]
-        # gripper_pos = sampler(gripper_pos, sample_size)
-        gripper_rot = [tuple(item) for item in zip(dict_of_lists[desired_order[10]], dict_of_lists[desired_order[11]], dict_of_lists[desired_order[12]], dict_of_lists[desired_order[13]])]
-        # gripper_rot = sampler(gripper_rot, sample_size)
-        battery_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[14]], dict_of_lists[desired_order[15]], dict_of_lists[desired_order[16]])]
-        # battery_pos = sampler(battery_pos, sample_size)
-        battery_rot = [tuple(item) for item in zip(dict_of_lists[desired_order[17]], dict_of_lists[desired_order[18]], dict_of_lists[desired_order[19]], dict_of_lists[desired_order[20]])]
-        # battery_rot = sampler(battery_rot, sample_size)
-        A1_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[21]], dict_of_lists[desired_order[22]], dict_of_lists[desired_order[23]])]
-        # A1_pos = sampler(A1_pos, sample_size)
-        A2_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[24]], dict_of_lists[desired_order[25]], dict_of_lists[desired_order[26]])]
-        # A2_pos = sampler(A2_pos, sample_size)
-        A3_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[27]], dict_of_lists[desired_order[28]], dict_of_lists[desired_order[29]])]
-        # A3_pos = sampler(A3_pos, sample_size)
-        B1_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[30]], dict_of_lists[desired_order[31]], dict_of_lists[desired_order[32]])]
-        # B1_pos = sampler(B1_pos, sample_size)
-        B2_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[33]], dict_of_lists[desired_order[34]], dict_of_lists[desired_order[35]])]
-        # B2_pos = sampler(B2_pos, sample_size)
-        B3_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[36]], dict_of_lists[desired_order[37]], dict_of_lists[desired_order[38]])]
-        # B3_pos = sampler(B3_pos, sample_size)
-        C1_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[39]], dict_of_lists[desired_order[40]], dict_of_lists[desired_order[41]])]
-        # C1_pos = sampler(C1_pos, sample_size)
-        C2_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[42]], dict_of_lists[desired_order[43]], dict_of_lists[desired_order[44]])]
-        # C2_pos = sampler(C2_pos, sample_size)
-        C3_pos = [tuple(item) for item in zip(dict_of_lists[desired_order[45]], dict_of_lists[desired_order[46]], dict_of_lists[desired_order[47]])]
-        # C3_pos = sampler(C3_pos, sample_size)
-
-        # Now to modify each sublist in chisel_pos
-        chisel_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in chisel_pos]
-        gripper_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in gripper_pos]
-        battery_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in battery_pos]
-        A1_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in A1_pos]
-        A2_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in A2_pos]
-        A3_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in A3_pos]
-        B1_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in B1_pos]
-        B2_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in B2_pos]
-        B3_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in B3_pos]
-        C1_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in C1_pos]
-        C2_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in C2_pos]
-        C3_pos = [(sublist[2], sublist[0], sublist[1]) for sublist in C3_pos]
-
-        # For rotation, if you have w, x, y, z and want w, x, y, z re-ordered to w, x, y, z:
-        chisel_rot = [(sublist[3], sublist[2], sublist[0], sublist[1]) for sublist in chisel_rot]
-        gripper_rot = [(sublist[3], sublist[2], sublist[0], sublist[1]) for sublist in gripper_rot]
-        battery_rot = [(sublist[3], sublist[2], sublist[0], sublist[1]) for sublist in battery_rot]
-
-        # Assuming euler_change() is applied correctly elsewhere
-        chisel_rot = euler_change(chisel_rot)
-        gripper_rot = euler_change(gripper_rot)
-        battery_rot = euler_change(battery_rot)
-
-
-        CXYZ.extend(chisel_pos)
-        print(file)
-        index.append(len(CXYZ))
-        print(len(CXYZ))
-        Cwxyz.extend(chisel_rot)
-        GXYZ.extend(gripper_pos)
-        Gwxyz.extend(gripper_rot)
-        BXYZ.extend(battery_pos)
-        Bwxyz.extend(battery_rot)
-        A1XYZ.extend(A1_pos)
-        A2XYZ.extend(A2_pos)
-        A3XYZ.extend(A3_pos)
-        B1XYZ.extend(B1_pos)
-        B2XYZ.extend(B2_pos)
-        B3XYZ.extend(B3_pos)
-        C1XYZ.extend(C1_pos)
-        C2XYZ.extend(C2_pos)
-        C3XYZ.extend(C3_pos)
-
-    return CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ, index
+from typing import Union
     
 def extract_data_handover(result_dict, sample_size):
 
@@ -540,6 +279,16 @@ def get_data_stats(data):
         'min': np.min(data, axis=0),
         'max': np.max(data, axis=0)
     }
+
+    return stats
+
+
+def get_data_stats_handover(data):
+    data = data.reshape(-1,data.shape[-1])
+    stats = {
+        'min': np.min(data, axis=0),
+        'max': np.max(data, axis=0)
+    }
     
     # print(len(stats['min']))
     # print(len(stats['max']))
@@ -568,7 +317,7 @@ def unnormalize_data(ndata, stats):
     return data
 
 # dataset
-class RealStateDataset(torch.utils.data.Dataset):
+class HandOverStateDataset(torch.utils.data.Dataset):
     def __init__(self, dataset,  base_path,
                  pred_horizon, obs_horizon, action_horizon, sample_size):
         
@@ -630,7 +379,7 @@ class RealStateDataset(torch.utils.data.Dataset):
         stats = dict()
         normalized_train_data = dict()
         for key, data in train_data.items():
-            stats[key] = get_data_stats(data)
+            stats[key] = get_data_stats_handover(data)
             normalized_train_data[key] = normalize_data(data, stats[key])
 
         self.indices = indices
@@ -728,24 +477,18 @@ class PushTStateDataset(torch.utils.data.Dataset):
         return nsample
 
 
-
-class ChiselStateDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset,  base_path,
-                 pred_horizon, obs_horizon, action_horizon, sample_size):
-
-        # read from zarr dataset
-        chisel_data_cleaner(dataset, base_path, sample_size)
-
-        # for key in result_dict:
-        CXYZ, Cwxyz, GXYZ, Gwxyz, BXYZ, Bwxyz, A1XYZ, A2XYZ, A3XYZ, B1XYZ, B2XYZ, B3XYZ, C1XYZ, C2XYZ, C3XYZ, index = extract_data_chisel(base_path)
+class TaskStateDataset(torch.utils.data.Dataset):
+    def __init__(self, Tooldataset: Union[list, np.array, None], Rigiddataset: Union[list, np.array, None],
+                  Markerdataset: Union[list, np.array, None], index,
+                 pred_horizon, obs_horizon, action_horizon):
 
         action = []
         obs = []
-        for i in range(len(CXYZ)):
+        for i in range(index[-1]):
             # a = []
-            a = [*Cwxyz[i], *CXYZ[i], *Gwxyz[i], *GXYZ[i]]
+            a = [*Tooldataset[i]]
             print(a)
-            b = [*Cwxyz[i], *CXYZ[i], *Gwxyz[i], *GXYZ[i], *Bwxyz[i], *BXYZ[i], *A1XYZ[i], *A2XYZ[i], *A3XYZ[i], *B1XYZ[i], *B2XYZ[i], *B3XYZ[i], *C1XYZ[i], *C2XYZ[i], *C3XYZ[i]]
+            b = [*Tooldataset[i], *Rigiddataset[i], *Markerdataset[i]]
             
             action.append(a)
             obs.append(b)
