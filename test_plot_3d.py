@@ -76,10 +76,10 @@ if __name__ == "__main__":
     import submodules.cleaned_file_parser as cfp
     import submodules.plot_traj_3d as pt3d
 
-    path = './diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
+    path = './diffusion_pipline/data_chisel_task/test_128_cleaned_incorrect.csv'
 
     data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 30.0, filter=True, window_size=15, polyorder=3)
-
+    data.get_rigid_TxyzRxyz()
     get_video(data=data,
               target_path="./no-sync/outputs/")
     # get_video()

@@ -86,12 +86,14 @@ print("..........")
 #     # create_xy_video(_data['GP'], _data['BxP'], _data['SP'], fps=30, video_filename=f'videos/output_{key}.avi', marker_list=['o', 'x', '*'])
 
 
-dir_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/cap_008.csv'
-save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/'
+dir_path = '/Users/rysavM1-Pro/Documents/GitHub/diffusion_policy_cam/no-sync/datasets/dataset july 10/test/test_128.csv'
+save_path = 'test_cleaned_128.csv'
 
 # for file in os.listdir(dir_path):
 #     if file.endswith(".csv"):
 #         print(file)
+
+
 mfc.motive_chizel_task_cleaner(
     csv_path = dir_path, save_path=save_path
 )

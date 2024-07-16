@@ -81,7 +81,7 @@ class DataParser:
         
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
-            sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
+            sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) # TODO
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
