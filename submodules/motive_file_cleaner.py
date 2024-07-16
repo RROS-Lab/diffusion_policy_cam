@@ -1,7 +1,7 @@
 import pandas as pd
 import regex as re
 import numpy as np
-import submodules.data_filter as _df
+import data_filter as _df
 import os
 
 def motive_handover_task_cleaner(csv_path:str,

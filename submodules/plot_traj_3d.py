@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
-import submodules.robomath as rm
-import submodules.robomath_addon as rma
+import robomath as rm
+import robomath_addon as rma
 import numpy as np
 import pandas as pd
 from matplotlib.animation import FuncAnimation

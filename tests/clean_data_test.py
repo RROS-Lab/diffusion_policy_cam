@@ -87,7 +87,7 @@ print("..........")
 
 
 dir_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/cap_008.csv'
-save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/'
+save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/'
 
 # for file in os.listdir(dir_path):
 #     if file.endswith(".csv"):
