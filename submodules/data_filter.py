@@ -92,7 +92,7 @@ def indexer(data_frame: pd.DataFrame, start_frame: int, end_frame: int) -> pd.Da
     data = data.reset_index(drop=True)
     return data
 
-def episode_splitter(data_frame: pd.DataFrame, episode_length: Union(list, np.array)) -> dict:
+def episode_splitter(data_frame: pd.DataFrame, episode_length: Union[list, np.array]) -> dict:
     """
     Args : data frame
     episode_length : int

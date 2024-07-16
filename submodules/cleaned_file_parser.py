@@ -1,14 +1,17 @@
 import pandas as pd
-import submodules.robomath_addon as rma
+# import submodules.robomath_addon as rma
+import robomath_addon as rma
 import numpy as np
-import submodules.data_filter as _df
+# import submodules.data_filter as _df
+import data_filter as _df
 from typing import Union
 
 
 def process_data(data :pd.DataFrame,
                  fps: float = 30.0, filter: bool = False,
                  window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
-    input_fps = data.iloc[0, 1]
+    input_fps = float(data.iloc[0, 1])
+    # print(input_fps)
     _new_data = _df.fps_sampler(data[1:], target_fps = fps, input_fps=input_fps)
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
@@ -33,7 +36,7 @@ class DataParser:
         self.data = self.data.drop(index =0)
 
     # @classmethod
-    def get_rigidbody_TxyzQwxyz(self, **kwargs) -> dict:
+    def get_rigid_TxyzQwxyz(self, **kwargs) -> dict:
         """
         Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
         
@@ -59,14 +62,13 @@ class DataParser:
             elif self.file_type == 'EULER':
                 rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
 
-        
-        if kwargs:
-            name = kwargs.get('Object', [])
-            return {key: rb_TxyzQwxyz[key] for key in name if key in rb_TxyzQwxyz}
+        for key, value in kwargs.items():
+            if key == 'object':
+                return {key: rb_TxyzQwxyz[key] for key in value if key in rb_TxyzQwxyz}
         
         return rb_TxyzQwxyz
     
-    def get_rigidbody_TxyzRxyz(self, **kwargs) -> dict:
+    def get_rigid_TxyzRxyz(self, **kwargs) -> dict:
         """
         Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
         
@@ -90,9 +92,9 @@ class DataParser:
             elif self.file_type == 'EULER':
                 rb_TxyzRxyz[rb] = self.data[sorted_columns].values.astype(float)
 
-        if kwargs:
-            name = kwargs.get('Object', [])
-            return {key: rb_TxyzRxyz[key] for key in name if key in rb_TxyzRxyz}
+        for key, value in kwargs.items():
+            if key == 'object':
+                return {key: rb_TxyzRxyz[key] for key in value if key in rb_TxyzRxyz}
     
         return rb_TxyzRxyz
 
@@ -117,9 +119,9 @@ class DataParser:
             sorted_columns = sorted(mk_columns, key=lambda x: x.split('_')[1])
             mk_Txyz[mk] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, self.data[sorted_columns].values.astype(float))
 
-        if kwargs:
-            name = kwargs.get('Object', [])
-            return {key: mk_Txyz[key] for key in name if key in mk_Txyz}
+        for key, value in kwargs.items():
+            if key == 'object':
+                return {key: mk_Txyz[key] for key in value if key in mk_Txyz}
 
         return mk_Txyz
 
@@ -132,7 +134,7 @@ class DataParser:
 
     
     @classmethod
-    def from_quat_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3)
+    def from_quat_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3):
 
         return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
     
@@ -144,3 +146,16 @@ class DataParser:
         self.tools = set()
         self.file_type = file_type
         self.__extract_column_info__()
+
+
+if __name__ == "__main__":
+
+    path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
+
+    data = DataParser.from_quat_file(file_path = path, target_fps=30.0, filter=False, window_size=15, polyorder=3)
+
+    print(data.rigid_bodies)
+
+    tools = data.get_rigid_TxyzQwxyz(object = ['chisel'])
+
+    print(tools)
