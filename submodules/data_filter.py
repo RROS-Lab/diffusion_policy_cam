@@ -4,7 +4,7 @@ import re
 from scipy.signal import savgol_filter
 from typing import Union
 
-def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float = 240.0) ->pd.DataFrame:
+def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float) ->pd.DataFrame:
     """
         Downsample the data to the target_fps.
     """
