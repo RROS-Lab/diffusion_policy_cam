@@ -83,6 +83,11 @@ def normalize_eulers(angles: np.ndarray) -> np.ndarray:
     
     return angles
     
+
+''''can stop using these now   
+    added new function which is more dynamic then these on in data_filter.py 
+'''
+
 def motive_2_robodk_rigidbody(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
     """
     Convert motive frame to RoboDK frame.
@@ -105,5 +110,6 @@ def robodk_2_motive(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
     # return [Y, Z, X, w, x, y, z]
 
     return [Z, X, Y, w, z, x, y]
+
 
 
