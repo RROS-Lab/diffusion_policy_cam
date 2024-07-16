@@ -105,10 +105,10 @@ def episode_splitter(data_frame: pd.DataFrame, episode_length: Union(list, np.ar
 
     return episodes
 
-def episode_combiner(data_frames: dict) -> (list , list):
+def episode_combiner(data_frames: dict) -> list:
     """
-    Args : dict of data frames
-    Returns a single data frame with all the data frames combined
+    Args : dict of np.arryas
+    Returns a single data frame with all the data frames combined and there indexes
     """
     combined_data = []
     indexes = []
@@ -116,7 +116,7 @@ def episode_combiner(data_frames: dict) -> (list , list):
 
     # Loop through each key (assuming data_frames is a dictionary)
     for key in data_frames.keys():
-        combined_data.append(data_frames[key].values)  # Append data as numpy array
+        combined_data.append(data_frames[key])  # Append data as numpy array
         cumulative_count += len(data_frames[key])
         # Store cumulative count as index
         indexes.append(cumulative_count) 

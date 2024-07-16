@@ -8,9 +8,8 @@ from typing import Union
 def process_data(data :pd.DataFrame,
                  fps: float = 30.0, filter: bool = False,
                  window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
-    
-
-    _new_data = _df.fps_sampler(data, target_fps = fps, input_fps=120)
+    input_fps = data.iloc[0, 1]
+    _new_data = _df.fps_sampler(data[1:], target_fps = fps, input_fps=input_fps)
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
     return _new_data
@@ -19,7 +18,6 @@ class DataParser:
     """
         Cleaned DATA parser.
     """
-
     def __extract_column_info__(self):
         # Extract unique marker, rigid body, and tool names
         marker_columns = [col for col in self.data.columns if 'Marker' in col]
@@ -35,7 +33,7 @@ class DataParser:
         self.data = self.data.drop(index =0)
 
     # @classmethod
-    def get_rigidbody_data(self, data_type: Union['QUAT', 'EULER']) -> dict:
+    def get_rigidbody_TxyzQwxyz(self, **kwargs) -> dict:
         """
         Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
         
@@ -47,7 +45,40 @@ class DataParser:
         Returns:
         - dict: Dictionary containing processed rigid body data for each rigid body.
         """
-        rb_TxyzQR = {}  # Dictionary to store processed data
+        rb_TxyzQwxyz = {}  # Dictionary to store processed data
+        
+        for rb in self.rigid_bodies:
+            rb_columns = [col for col in self.data.columns if col.startswith(rb)]
+            sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
+            
+            # Select processing method based on data type and column length
+
+            if self.file_type == 'QUAT':
+                rb_TxyzQwxyz[rb] = self.data[sorted_columns].values.astype(float)
+
+            elif self.file_type == 'EULER':
+                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
+
+        
+        if kwargs:
+            name = kwargs.get('Object', [])
+            return {key: rb_TxyzQwxyz[key] for key in name if key in rb_TxyzQwxyz}
+        
+        return rb_TxyzQwxyz
+    
+    def get_rigidbody_TxyzRxyz(self, **kwargs) -> dict:
+        """
+        Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
+        
+        Args:
+        - data (pd.DataFrame): The input DataFrame containing the data.
+        - rigid_bodies (list): List of rigid body names to process.
+        - data_type (Union['QUAT', 'EULER']): Type of data to process ('QUAT' for quaternions, 'EULER' for Euler angles).
+        
+        Returns:
+        - dict: Dictionary containing processed rigid body data for each rigid body.
+        """
+        rb_TxyzRxyz = {}  # Dictionary to store processed data
         
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
@@ -55,30 +86,19 @@ class DataParser:
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
-                if data_type == 'QUAT':
-                    print('QUAT')
-                    rb_TxyzQR[rb] = self.data[sorted_columns].values.astype(float)
-                    print(rb_TxyzQR[rb][0])
-
-                elif data_type == 'EULER':
-                    print('EULER')
-                    # # single = self.data[sorted_columns].values.astype(float)[0].astype(float)
-                    # print(single)
-                    # valaa = rma.TxyzQwxyz_2_TxyzRxyz(single)
-                    rb_TxyzQR[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
-                    # print(valaa)
-                    # print(rb_TxyzQR[rb][0])
-
+                rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
             elif self.file_type == 'EULER':
-                if data_type == 'QUAT':
-                    rb_TxyzQR[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
-                elif data_type == 'EULER':
-                    rb_TxyzQR[rb] = self.data[sorted_columns].values.astype(float)
-        
-        return rb_TxyzQR
+                rb_TxyzRxyz[rb] = self.data[sorted_columns].values.astype(float)
+
+        if kwargs:
+            name = kwargs.get('Object', [])
+            return {key: rb_TxyzRxyz[key] for key in name if key in rb_TxyzRxyz}
     
+        return rb_TxyzRxyz
+
+
     # @classmethod
-    def get_marker_data(self) -> dict:
+    def get_marker_Txyz(self, **kwargs) -> dict:
         """
         Process marker data from a DataFrame.
         
@@ -97,77 +117,30 @@ class DataParser:
             sorted_columns = sorted(mk_columns, key=lambda x: x.split('_')[1])
             mk_Txyz[mk] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, self.data[sorted_columns].values.astype(float))
 
+        if kwargs:
+            name = kwargs.get('Object', [])
+            return {key: mk_Txyz[key] for key in name if key in mk_Txyz}
+
         return mk_Txyz
-    
-    # @classmethod
-    def get_tool_data(self, data_type: Union['QUAT', 'EULER']) -> dict:
-        """
-        Process tool data from a DataFrame based on the specified type (QUAT or EULER).
-        
-        Args:
-        - data (pd.DataFrame): The input DataFrame containing the data.
-        - tools (list): List of tool names to process.
-        - data_type (Union['QUAT', 'EULER']): Type of data to process ('QUAT' for quaternions, 'EULER' for Euler angles).
-        
-        Returns:
-        - dict: Dictionary containing processed tool data for each tool.
-        """
-        tcp_TxyzQR = {} # Dictionary to store processed data
 
-        for tcp in self.tools:
-            tcp_columns = [col for col in self.data.columns if col.startswith(tcp)]
-            sorted_columns = sorted(tcp_columns, key=lambda x: x.split('_')[1])
-            
-            # Select processing method based on data type and column length
-            if self.file_type == 'QUAT':
-                if data_type == 'QUAT':
-                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
-                elif data_type == 'EULER':
-                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
-            elif self.file_type == 'EULER':
-                if data_type == 'QUAT':
-                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
-                elif data_type == 'EULER':
-                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
-
-        return tcp_TxyzQR
-    
-
-    
     
     @classmethod
-    def from_euler_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        TxyzRxyz = {} # Dictionary to store processed data
+    def from_euler_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3):
 
-        for tcp in self.tools: # TODO - not tools
-            tcp_columns = [col for col in self.data.columns if col.startswith(tcp)]
-            sorted_columns = sorted(tcp_columns, key=lambda x: x.split('_')[1])
-            
-            # Select processing method based on data type and column length
-            if self.file_type == 'QUAT':
-                if data_type == 'QUAT':
-                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
-                elif data_type == 'EULER':
-                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
-            elif self.file_type == 'EULER':
-                if data_type == 'QUAT':
-                    tcp_TxyzQR[tcp] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
-                elif data_type == 'EULER':
-                    tcp_TxyzQR[tcp] = self.data[sorted_columns].values.astype(float)
-
-        return tcp_TxyzQR
-        return DataParser(file_path, 'EULER', fps, filter, window_size, polyorder)
+        return DataParser(file_path, 'EULER', target_fps, filter, window_size, polyorder)
     
 
     
     @classmethod
-    def from_quat_file(self, file_path, fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        return DataParser(file_path, 'QUAT', fps, filter, window_size, polyorder)
+    def from_quat_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3)
 
-    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        self.data = process_data(pd.read_csv(file_path), fps, filter, window_size, polyorder)
+        return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
+    
+
+    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        self.data = process_data(pd.read_csv(file_path), target_fps, filter, window_size, polyorder)
         self.markers = set()
         self.rigid_bodies = set()
         self.tools = set()
-        self.file_type  = file_type
+        self.file_type = file_type
         self.__extract_column_info__()

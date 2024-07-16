@@ -64,7 +64,7 @@ def motive_handover_task_cleaner(csv_path:str,
     print(useful_data.keys())
 
     for i in range(min(len(useful_data[GR]), len(useful_data[BxR]))):
-        diff_s = df.distance(useful_data[GR][i], useful_data[BxR][i])
+        diff_s = _df.distance(useful_data[GR][i], useful_data[BxR][i])
         diff.append(diff_s)
 
     GA = np.full_like(diff, -1)
@@ -188,7 +188,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
                 object_values.append('RigidBody')
                 combined_values.append('battery_' + c.lower())
             else:
-                object_values.append('Tool')
+                object_values.append('RigidBody')
                 combined_values.append(str(a).split("_")[0] + '_' + c.lower())
         else:
             if str(a) in matching_keys.values():
@@ -202,7 +202,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
             elif str(a) not in matching_keys.values() and str(a).startswith('Unlabeled'):
                 columns_to_drop.append(index)
             else:
-                object_values.append('Tool')
+                object_values.append('RigidBody')
                 combined_values.append(str(a).split("_")[0] + '_' + c)
                 
     columns_to_drop.append(0)
