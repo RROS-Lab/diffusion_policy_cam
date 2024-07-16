@@ -1,9 +1,9 @@
 import pandas as pd
 # import submodules.robomath_addon as rma
-import submodules.robomath_addon as rma
+import robomath_addon as rma
 import numpy as np
 # import submodules.data_filter as _df
-import submodules.data_filter as _df
+import data_filter as _df
 from typing import Union
 import csv
 
@@ -56,15 +56,13 @@ class DataParser:
             if rb+'_state' in sorted_columns:
                 sorted_columns.remove(rb+'_state')
             # Select processing method based on data type and column length
-
             if self.file_type == 'QUAT':
                 #motive data
                 # rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, self.data[sorted_columns].values.astype(float))
                 rb_TxyzQwxyz[rb] = self.data[sorted_columns].values.astype(float)
 
             elif self.file_type == 'EULER':
-                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
-
+                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
 
         for key, value in kwargs.items():
             if key == 'item':
@@ -129,7 +127,7 @@ class DataParser:
             mk_Txyz[mk] = self.data[sorted_columns].values.astype(float)
 
         for key, value in kwargs.items():
-            if key == 'marker':
+            if key == 'object':
                 return {key: mk_Txyz[key] for key in value if key in mk_Txyz}
 
         return mk_Txyz
@@ -241,6 +239,6 @@ class DataParser:
 
 #     print(data.rigid_bodies)
 
-#     tools = data.get_rigid_TxyzQwxyz(item = ['chisel'])
+    tools = data.get_rigid_TxyzQwxyz(object = ['chisel'])
 
 #     print(tools)
