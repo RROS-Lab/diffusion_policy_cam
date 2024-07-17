@@ -8,8 +8,9 @@ import os
 def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     '''
     csv_path: str
-    start_frame: int
-    end_frame: int
+        path to the csv file
+    save_path: str
+        path to save the cleaned csv file
 
     create a new csv file with the cleaned data in robodk frame
 
@@ -24,8 +25,8 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     _data = pd.read_csv(csv_path)
     name , rate = _data.columns[6], _data.columns[7]
     _data = _data.reset_index(drop=False)
-    _data = _data.drop(index =0)
-    _data = _data.drop(index =2)
+    indices_drop = [0, 2]
+    _data = _data.drop(indices_drop)
     _data = _data.reset_index(drop=True)
 
     row1 = _data.iloc[0]
@@ -46,7 +47,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
     for idx in range(0, len(unlabled_data.columns), 3):
         col_name = unlabled_data.iloc[0, idx]
-        # print(col_name)
+
         if col_name.startswith('RigidBody'):
             x = float(unlabled_data.iloc[150, idx])
             y = float(unlabled_data.iloc[150, idx + 1])
@@ -58,10 +59,8 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
             x = float(unlabled_data.iloc[150, idx])
             y = float(unlabled_data.iloc[150, idx + 1])
             z = float(unlabled_data.iloc[150, idx + 2])
-            # Y.append(z)
             point = [x, y, z]
             dict_of_lists[col_name] = point
-            # dict_of_lists.append(point)
             
     filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
         
@@ -96,7 +95,6 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     columns_to_drop = [] 
 
     for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
-        # print(str(b) + '_' + str(c))
         if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
 
             if str(a) in matching_keys.values():
@@ -129,31 +127,48 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     columns_to_drop.append(1)
     _data = _data.drop(_data.columns[columns_to_drop], axis=1)
     _data.columns = combined_values[2:]
-    _data = _data.drop(index =0)
-    _data = _data.drop(index =1)
-    _data = _data.drop(index =2)
-    _data = _data.drop(index =3)
-    _data = _data.reset_index(drop=True)
-    unique_identification = set(combined_values.split('_')[0] for combined_values in combined_values[2:])
 
-    for rb in unique_identification:
+    _data = _data.drop([0, 1, 2, 3])
+    _data = _data.dropna()
+    _data = _data.reset_index(drop=True)
+
+
+    RigidBody = { 'battery', 'chisel', 'gripper'}
+    Marker = { 'A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'}
+    combined_set = RigidBody.union(Marker)
+
+    _params = {
+        'RigidBody': {'len':7,
+                    'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']},
+        'Marker': {'len':3,
+                    'dof': ['X', 'Y', 'Z']}
+    }
+
+    _SUP_HEADER_ROW = (["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
+    _rb_col_names = [f"{rb}_{axis}" for rb in RigidBody for axis in _params['RigidBody']['dof']]
+    _mk_col_names = [f"{mk}_{axis}" for mk in Marker for axis in _params['Marker']['dof']]
+    _HEADER_ROW = _rb_col_names + _mk_col_names
+    _data = _data.reindex(columns=_HEADER_ROW)
+    state_dict = {_rb: _params['RigidBody']['len'] * i for i, _rb in enumerate(RigidBody, start=1)}
+    add_row = pd.DataFrame([pd.Series([name, rate] + [np.nan] * (len(_data.columns) - 2), index=_data.columns, dtype=str)], columns=_data.columns)
+    item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=_data.columns)
+
+    for rb in combined_set:
         rb_columns = [col for col in _data.columns if col.startswith(rb)]
         sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
         if len(rb_columns) == 3:
             _data[sorted_columns] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, _data[sorted_columns].values.astype(float))
-
         else:
             _data[sorted_columns] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, _data[sorted_columns].values.astype(float))
 
-
-    colsdas = pd.DataFrame(np.reshape(_data.columns.values, (1, -1)), columns=_data.columns)
-    new_row = np.zeros_like(_data.iloc[0]).astype(str)
-    new_row[0] = name
-    new_row[1] = rate
-    new_row = pd.DataFrame([new_row], columns=_data.columns)
-    _data = pd.concat([_data.iloc[:0], new_row, colsdas, _data.iloc[0:]], ignore_index=True)
-    _data.columns = object_values[2:]
-    _data = _data.dropna()
+    _data = pd.concat([_data.iloc[:0], add_row, item_row, _data.iloc[0:]], ignore_index=True)
     _data = _data.reset_index(drop=True)
+    add_col = pd.DataFrame(np.reshape(np.full_like(_data.iloc[:,0], -1, dtype=int), (-1, 1)), columns=['RigidBody'])
+    _data.columns = _SUP_HEADER_ROW
+    offset = 0
+    for key , vals in state_dict.items():
+        add_col.iloc[1] = key + '_state'
+        _data.insert(loc=vals + offset ,column = 'RigidBody', value=add_col, allow_duplicates=True)
+        offset += 1
 
     _data.to_csv(f'{file_path}', index=False)
