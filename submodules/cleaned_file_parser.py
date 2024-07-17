@@ -132,7 +132,6 @@ class DataParser:
     
     @classmethod
     def from_quat_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-
         return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
     
 

@@ -24,7 +24,7 @@ def get_video(data, target_path=None):
     markers  = [markers_dict[mk] for mk in data.markers]
 
 
-    # intial_markers = [_mk[0] for _mk in markers]
+    intial_markers = [_mk[0] for _mk in markers]
 
     ax1 = plot.add_subplot(r=1,c=1,i=1, 
                            projection='3d',title='3D Spline Trajectory', lables=['X', 'Y', 'Z'])
@@ -41,8 +41,8 @@ def get_video(data, target_path=None):
     ax4 = None
 
     #side plot Chisel trajectory
-    plot.plot_single_traj(None, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
-    # plot.plot_single_traj(ax1, ax2, ax3, ax4, C_TxyzQwxyz, density=100)
+    # plot.plot_single_traj(None, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
+    
     ax2.set_title('Chisel Trajectory')
 
     ax5 = plot.add_subplot(r=4,c=4,i=9)
@@ -51,31 +51,36 @@ def get_video(data, target_path=None):
     ax7 = None
 
     #side plot Gripper trajectory
-    plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
-    # plot.plot_single_traj(ax1, ax5, ax6, ax7, G_TxyzQwxyz, density=100)
+    # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
+
+    plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
+    plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['gripper'], density=100)
+    # plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
+
     ax5.set_title('Gripper Trajectory')
     #plot intial battery markers
-    # plot.plot_nodes(ax1, nodes=intial_markers, color='black', marker='o', size=10)
+    plot.plot_nodes(ax1, nodes=np.array(intial_markers))
 
     # plt.show()
 
 
     ##############################
-    ani = plot.animate_multiple_trajectories(ax=ax1,
-                                             list_trajectories=[*rigid_bodies, *markers],
-                                             interval=50,
-                                             quiver_line_width=2,
-                                             quiver_size=0.07,
-                                             path_line_width=0.4)
+    # ani = plot.animate_multiple_trajectories(ax=ax1,
+    #                                          list_trajectories=[*rigid_bodies, *markers],
+    #                                          interval=50,
+    #                                          quiver_line_width=2,
+    #                                          quiver_size=0.07,
+    #                                          path_line_width=0.4)
     
     plt.show()
-    if target_path:
-        ani.save(target_path, writer='ffmpeg', fps=data.fps)
+    # if target_path:
+    #     ani.save(target_path, writer='ffmpeg', fps=data.fps)
 
 if __name__ == "__main__":
     import submodules.cleaned_file_parser as cfp
     import submodules.plot_traj_3d as pt3d
 
+    # path = './diffusion_pipline/data_chisel_task/test_128_cleaned_incorrect.csv'
     path = './diffusion_pipline/data_chisel_task/test_128_cleaned_incorrect.csv'
 
     data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 30.0, filter=True, window_size=15, polyorder=3)
