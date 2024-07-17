@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import math
 import os
+import time
 import torch
 import torch.nn as nn
 import collections
@@ -89,26 +90,21 @@ dict_of_df_marker = {}
 for file in os.listdir(base_path):
     if file.endswith(".csv") and file.startswith("cap"):
         path_name = base_path + file
-        data = cfp.DataParser.for_quat_file(file_path = path_name, filter=True, window_size=15, polyorder=3)
-        dict_of_df_tool[file] = data.get_tool_data(data_type='EULER')
-        dict_of_df_rigid[file] = data.get_rigid_data(data_type='EULER')
-        dict_of_df_marker[file] = data.get_marker_data(data_type='EULER')
+        data = cfp.DataParser.from_quat_file(file_path = path_name, filter=True, window_size=15, polyorder=3)
+        dict_of_df_rigid[file] = data.get_rigid_TxyzRxyz()
+        dict_of_df_marker[file] = data.get_marker_Txyz()
         
 if len(dict_of_df_tool) == len(dict_of_df_rigid) == len(dict_of_df_marker):
-    tooldataset = _df.
+    rigiddataset, index = _df.episode_combiner(dict_of_df_rigid)
+    markerdataset, _ = _df.episode_combiner(dict_of_df_marker)
 
 
-dataset = dproc.TaskStateDataset()
+dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index,
+                                 pred_horizon=pred_horizon,
+                                 obs_horizon=obs_horizon,
+                                 action_horizon=action_horizon)
 
-.RealStateDataset(
-    dataset=train_df,
-    base_path=base_path,
-    pred_horizon=pred_horizon,
-    obs_horizon=obs_horizon,
-    action_horizon=action_horizon,
-    sample_size=sample_size
-)
-
+# create dataloader
 dataloader = torch.utils.data.DataLoader(
     dataset,
     batch_size=256,
@@ -120,24 +116,25 @@ dataloader = torch.utils.data.DataLoader(
     persistent_workers=True
 )
 
-
 batch = next(iter(dataloader))
 print("batch['obs'].shape:", batch['obs'].shape)
 print("batch['action'].shape", batch['action'].shape)
-
 
 #@markdown ### **Training**
 #@markdown
 #@markdown Takes about an hour. If you don't want to wait, skip to the next cell
 #@markdown to load pre-trained weights
 
-num_epochs = 400
-
+num_epochs =400
+checkpoint_dir = 'checkpoints'
+os.makedirs(checkpoint_dir, exist_ok=True)
+checkpoint_interval = 3600
+last_checkpoint_time = time.time()
 # Exponential Moving Average
 # accelerates training and improves stability
 # holds a copy of the model weights
 ema = EMAModel(
-    model=noise_pred_net,
+    parameters=noise_pred_net.parameters(),
     power=0.75)
 
 # Standard ADAM optimizer
@@ -150,21 +147,24 @@ optimizer = torch.optim.AdamW(
 lr_scheduler = get_scheduler(
     name='cosine',
     optimizer=optimizer,
-    num_warmup_steps=400,
+    num_warmup_steps=200,
     num_training_steps=len(dataloader) * num_epochs
 )
 
 with tqdm(range(num_epochs), desc='Epoch') as tglobal:
     # epoch loop
+    epoch_loss = []
+    batch_loss_per_epoch = []
+
     for epoch_idx in tglobal:
-        epoch_loss = list()
+        batch_loss = []
+        batch_noise = []
         # batch loop
         with tqdm(dataloader, desc='Batch', leave=False) as tepoch:
+
             for nbatch in tepoch:
                 # data normalized in dataset
                 # device transfer
-                # nobs = nbatch['obs'].to(device)
-                # naction = nbatch['action'].to(device)
                 nobs = nbatch['obs']
                 naction = nbatch['action']
                 B = nobs.shape[0]
@@ -181,11 +181,6 @@ with tqdm(range(num_epochs), desc='Epoch') as tglobal:
                 noise = torch.randn(naction.shape)
 
                 # sample a diffusion iteration for each data point
-                # timesteps = torch.randint(
-                #     0, noise_scheduler.config.num_train_timesteps,
-                #     (B,), device=device
-                # ).long()
-
                 timesteps = torch.randint(
                     0, noise_scheduler.config.num_train_timesteps,
                     (B,)
@@ -207,6 +202,8 @@ with tqdm(range(num_epochs), desc='Epoch') as tglobal:
                 # predict the noise residual
                 noise_pred = noise_pred_net(
                     noisy_actions, timesteps, global_cond=obs_cond)
+                
+                batch_noise.append(noise_pred)
 
                 # L2 loss
                 loss = nn.functional.mse_loss(noise_pred, noise)
@@ -221,14 +218,52 @@ with tqdm(range(num_epochs), desc='Epoch') as tglobal:
 
                 # update Exponential Moving Average of the model weights
                 ema.step(noise_pred_net)
+                # print(ema.state_dict)
 
                 # logging
                 loss_cpu = loss.item()
-                epoch_loss.append(loss_cpu)
+                batch_loss.append(loss_cpu)
                 tepoch.set_postfix(loss=loss_cpu)
-        tglobal.set_postfix(loss=np.mean(epoch_loss))
+
+        # save checkpoint
+        # went to the emma model library and added state_dict to the model
+        current_time = time.time()
+        if current_time - last_checkpoint_time > checkpoint_interval:
+        # if epoch_idx == 2:
+            # Save model checkpoint
+            # checkpoint_path = os.path.join(checkpoint_dir, f'BOX_GRIP_checkpoint_epoch_{epoch_idx}.pth')
+            checkpoint_path = os.path.join(checkpoint_dir, f'T_checkpoint_epoch_{epoch_idx}.pth')
+
+            torch.save({
+                'epoch': epoch_idx,
+                'model_state_dict': noise_pred_net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'lr_scheduler_state_dict': lr_scheduler.state_dict(),
+                'ema_state_dict': ema.state_dict,
+                'loss': loss.cpu().detach().numpy(),
+            }, checkpoint_path)
+            print(f'Checkpoint saved at epoch {epoch_idx}')
+            last_checkpoint_time = current_time
+        elif epoch_idx == num_epochs:
+            # Save model checkpoint
+            # checkpoint_path = os.path.join(checkpoint_dir, f'BOX_GRIP_checkpoint_epoch_{epoch_idx}.pth')
+            checkpoint_path = os.path.join(checkpoint_dir, f'T_checkpoint_epoch_{epoch_idx}.pth')
+            torch.save({
+                'epoch': epoch_idx,
+                'model_state_dict': noise_pred_net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'lr_scheduler_state_dict': lr_scheduler.state_dict(),
+                'ema_state_dict': ema.state_dict,
+                'loss': loss.cpu().detach().numpy(),
+            }, checkpoint_path)
+            print(f'Checkpoint saved at epoch {epoch_idx}')
+            last_checkpoint_time = current_time
+            
+        tglobal.set_postfix(loss=np.mean(batch_loss))
+        epoch_loss.append(np.mean(batch_loss))
+        batch_loss_per_epoch.append(batch_loss)
 
 # Weights of the EMA model
 # is used for inference
 ema_noise_pred_net = noise_pred_net
-ema.copy_to(ema_noise_pred_net.parameters())
+# ema.copy_to(ema_noise_pred_net.parameters())

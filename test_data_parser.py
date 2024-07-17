@@ -3,12 +3,14 @@
 # import submodules.data_filter as _df
 import submodules.cleaned_file_parser as cfp
 
-path = './diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
+path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/test_128_cleaned.csv'
 
-data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=True, window_size=15, polyorder=3)
+data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
 
 print(data.rigid_bodies)
 
-# tools = data.get_rigid_data(object = ['chisel'])
+rigid = data.get_rigid_TxyzRxyz(item = ['chisel'])
+markers = data.get_marker_Txyz(marker = ['A1'])
 
-# print(tools.keys())
+print(rigid['chisel'][0])
+print(markers['A1'][0])

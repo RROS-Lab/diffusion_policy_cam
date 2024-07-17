@@ -62,7 +62,7 @@ class DataParser:
                 rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
 
         for key, value in kwargs.items():
-            if key == 'object':
+            if key == 'item':
                 return {key: rb_TxyzQwxyz[key] for key in value if key in rb_TxyzQwxyz}
         
         return rb_TxyzQwxyz
@@ -83,7 +83,7 @@ class DataParser:
         
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
-            sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) # TODO
+            sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) 
             
 
             
@@ -94,7 +94,7 @@ class DataParser:
                 rb_TxyzRxyz[rb] = self.data[rb_columns].values.astype(float)
 
         for key, value in kwargs.items():
-            if key == 'object':
+            if key == 'item':
                 return {key: rb_TxyzRxyz[key] for key in value if key in rb_TxyzRxyz}
     
         return rb_TxyzRxyz
@@ -124,7 +124,7 @@ class DataParser:
             mk_Txyz[mk] = self.data[sorted_columns].values.astype(float)
 
         for key, value in kwargs.items():
-            if key == 'object':
+            if key == 'marker':
                 return {key: mk_Txyz[key] for key in value if key in mk_Txyz}
 
         return mk_Txyz
@@ -151,14 +151,14 @@ class DataParser:
         self.__extract_column_info__()
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
+#     path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
 
-    data = DataParser.from_quat_file(file_path = path, target_fps=30.0, filter=False, window_size=15, polyorder=3)
+#     data = DataParser.from_quat_file(file_path = path, target_fps=30.0, filter=False, window_size=15, polyorder=3)
 
-    print(data.rigid_bodies)
+#     print(data.rigid_bodies)
 
-    tools = data.get_rigid_TxyzQwxyz(object = ['chisel'])
+#     tools = data.get_rigid_TxyzQwxyz(item = ['chisel'])
 
-    print(tools)
+#     print(tools)
