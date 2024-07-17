@@ -85,9 +85,9 @@ class DataParser:
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
-                rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
+                rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[rb_columns].values.astype(float))
             elif self.file_type == 'EULER':
-                rb_TxyzRxyz[rb] = self.data[sorted_columns].values.astype(float)
+                rb_TxyzRxyz[rb] = self.data[rb_columns].values.astype(float)
 
         for key, value in kwargs.items():
             if key == 'object':
@@ -113,8 +113,9 @@ class DataParser:
         # Extract marker data
         for mk in self.markers:
             mk_columns = [col for col in self.data.columns if col.startswith(mk)]
-            sorted_columns = sorted(mk_columns, key=lambda x: x.split('_')[1])
-            mk_Txyz[mk] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, self.data[sorted_columns].values.astype(float))
+            # sorted_columns = sorted(mk_columns, key=lambda x: x.split('_')[1])
+            mk_Txyz[mk] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, self.data[mk_columns].values.astype(float))
+            # mk_Txyz[mk] = self.data[mk_columns].values.astype(float)
 
         for key, value in kwargs.items():
             if key == 'object':
