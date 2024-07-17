@@ -153,5 +153,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     new_row = pd.DataFrame([new_row], columns=_data.columns)
     _data = pd.concat([_data.iloc[:0], new_row, colsdas, _data.iloc[0:]], ignore_index=True)
     _data.columns = object_values[2:]
+    _data = _data.dropna()
+    _data = _data.reset_index(drop=True)
 
     _data.to_csv(f'{file_path}', index=False)
