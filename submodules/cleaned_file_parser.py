@@ -5,13 +5,16 @@ import numpy as np
 # import submodules.data_filter as _df
 import submodules.data_filter as _df
 from typing import Union
+import csv
 
 def process_data(data :pd.DataFrame,
-                 fps: float = 30.0, filter: bool = False,
+                 fps: float, filter: bool = False,
                  window_size: int = 15, polyorder: int = 3) -> pd.DataFrame:
+    
     input_fps = float(data.iloc[0, 1])
     # print(input_fps)
     _new_data = _df.fps_sampler(data[1:], target_fps = fps, input_fps=input_fps)
+
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
     return _new_data
@@ -33,7 +36,7 @@ class DataParser:
         self.data = self.data.drop(index =0)
 
     # @classmethod
-    def get_rigid_TxyzQwxyz(self, **kwargs) -> dict:
+    def get_rigid_TxyzQwxyz(self, **kwargs) -> dict[str: np.ndarray[np.ndarray[7]]]:
         """
         Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
         
@@ -67,7 +70,7 @@ class DataParser:
         
         return rb_TxyzQwxyz
     
-    def get_rigid_TxyzRxyz(self, **kwargs) -> dict:
+    def get_rigid_TxyzRxyz(self, **kwargs) -> dict[str: np.ndarray[np.ndarray[6]]]:
         """
         Process rigid body data from a DataFrame based on the specified type (QUAT or EULER).
         
@@ -101,7 +104,7 @@ class DataParser:
 
 
     # @classmethod
-    def get_marker_Txyz(self, **kwargs) -> dict:
+    def get_marker_Txyz(self, **kwargs) -> dict[str: np.ndarray[np.ndarray[3]]]:
         """
         Process marker data from a DataFrame.
         
@@ -138,13 +141,49 @@ class DataParser:
 
     
     @classmethod
-    def from_quat_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+    def from_quat_file(self, file_path, target_fps: float | None, filter: bool = False, window_size: int = 15, polyorder: int = 3):
         return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
     
 
-    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float = 30.0, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+    def save_2_csv(self, file_path, save_type='QUAT'):
+        # add first rows
+        _params = {
+            'QUAT': {'len':7,
+                     'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z'],
+                     '__gettr__': self.get_rigid_TxyzQwxyz },
+            'EULER': {'len':6,
+                      'dof': ['X', 'Y', 'Z', 'x', 'y', 'z'],
+                      '__gettr__': self.get_rigid_TxyzRxyz}
+        }
+        
+        _SUP_HEADER_ROW = (["RigidBody"] * len(self.rigid_bodies) * _params[save_type]['len'] + ["Marker"] * len(self.markers) * 3)
+        _FPS_ROW = ["FPS", self.fps] + [0.0]*(len(_SUP_HEADER_ROW) - 2)
+        _rb_col_names = [f"{rb}_{axis}" for rb in self.rigid_bodies for axis in _params[save_type]['dof']]
+        _mk_col_names = [f"{mk}_{axis}" for mk in self.markers for axis in ['X', 'Y', 'Z']]
+        _HEADER_ROW = _rb_col_names + _mk_col_names
+
+        _dict_data_rigid = _params[save_type]['__gettr__']()
+        _dict_data_marker = self.get_marker_Txyz()
+
+        # concatenate all the data into a single array for _dict_data_rigid
+        _transformed_data_rigid = np.concatenate([_dict_data_rigid[rb] for rb in self.rigid_bodies], axis=1)
+        _transformed_data_marker = np.concatenate([_dict_data_marker[mk] for mk in self.markers], axis=1)
+        _transformed_data = np.concatenate([_transformed_data_rigid, _transformed_data_marker], axis=1)
+
+        # save as csv file with SUP_HEADER_ROW, FPS_ROW, HEADER_ROW, and _transformed_data
+        with open(file_path, 'w') as file:
+            writer = csv.writer(file)
+            writer.writerow(_SUP_HEADER_ROW)
+            writer.writerow(_FPS_ROW)
+            writer.writerow(_HEADER_ROW)
+            writer.writerows(_transformed_data)
+
+
+    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float, 
+                 filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        
         self.data = process_data(pd.read_csv(file_path), target_fps, filter, window_size, polyorder)
-        self.fps = target_fps
+        self.fps = float(target_fps)
         self.markers = set()
         self.rigid_bodies = set()
         self.file_type = file_type

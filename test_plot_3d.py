@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 # from submodules.trajectory_animator import TrajectoryAnimator
 
-def get_video(data, target_path=None):
+def get_visualization(data, target_path=None, video=False):
     
 
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
@@ -36,6 +36,7 @@ def get_video(data, target_path=None):
     plot.set_3D_plot_axis_limits(ax1, ALL_POINTS)
 
     ax2 = plot.add_subplot(r=4,c=4,i=1)
+    ax2.set_title('Chisel Trajectory')
     ax3 = plot.add_subplot(r=4,c=4,i=5)
     # ax4 = plot.add_subplot(r=4,c=4,i=9)
     ax4 = None
@@ -43,9 +44,10 @@ def get_video(data, target_path=None):
     #side plot Chisel trajectory
     # plot.plot_single_traj(None, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
     
-    ax2.set_title('Chisel Trajectory')
+    
 
     ax5 = plot.add_subplot(r=4,c=4,i=9)
+    ax5.set_title('Gripper Trajectory')
     ax6 = plot.add_subplot(r=4,c=4,i=13)
     # ax7 = plot.add_subplot(r=3,c=4,i=10)
     ax7 = None
@@ -53,38 +55,54 @@ def get_video(data, target_path=None):
     #side plot Gripper trajectory
     # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
 
-    plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
-    plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['gripper'], density=100)
-    # plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
-
-    ax5.set_title('Gripper Trajectory')
-    #plot intial battery markers
-    plot.plot_nodes(ax1, nodes=np.array(intial_markers))
-
-    # plt.show()
-
-
-    ##############################
-    # ani = plot.animate_multiple_trajectories(ax=ax1,
-    #                                          list_trajectories=[*rigid_bodies, *markers],
-    #                                          interval=50,
-    #                                          quiver_line_width=2,
-    #                                          quiver_size=0.07,
-    #                                          path_line_width=0.4)
     
-    plt.show()
-    # if target_path:
-    #     ani.save(target_path, writer='ffmpeg', fps=data.fps)
+
+    
+    #plot intial battery markers
+    if not video:
+        plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
+        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
+        plot.plot_nodes(ax1, nodes=np.array(intial_markers))
+        plt.show()
+    
+    if video:
+        ani = plot.animate_multiple_trajectories(ax=ax1,
+                                                 list_trajectories=[*rigid_bodies, *markers],
+                                                 interval=50,
+                                                 quiver_line_width=2,
+                                                 quiver_size=0.07,
+                                                 path_line_width=0.4)
+    
+        if target_path:
+            ani.save(target_path, writer='ffmpeg', fps=data.fps)
+
+        plt.show()
 
 if __name__ == "__main__":
     import submodules.cleaned_file_parser as cfp
     import submodules.plot_traj_3d as pt3d
 
-    # path = './diffusion_pipline/data_chisel_task/test_128_cleaned_incorrect.csv'
-    path = './diffusion_pipline/data_chisel_task/cap_008_cleaned.csv'
 
-    data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 30.0, filter=True, window_size=15, polyorder=3)
-    data.get_rigid_TxyzRxyz()
-    get_video(data=data,
-              target_path="./no-sync/outputs/")
+    #write
+    
+    
+    
+    # read_path = write_path # test read
+    
+
+    # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
+    # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+
+    read_path = './no-sync/outputs/test_128_scratch_rpy.csv'
+    data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+
+    
+    # data.save_2_csv(write_path) #TODO
+
+
+    # data.save_2_csv(file_path=write_path, save_type='EULER')
+    # data.get_rigid_TxyzRxyz()
+    get_visualization(data=data,
+              target_path="./no-sync/outputs/",
+              video=False)
     # get_video()
