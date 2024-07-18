@@ -61,6 +61,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
     '''Establishing the common values for the markers and the battery'''
     colums_val = []
+    index_to_use = 150
     for index, (val , val1) in enumerate(zip(row1, row2)):
         if str(val).startswith('Unlabeled'):
             colums_val.append(index)
@@ -71,9 +72,9 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     for idx in range(0, len(unlabled_data.columns), 3):
         col_name = unlabled_data.iloc[0, idx]
         if col_name.startswith('RigidBody'):
-            battery_coo = [float(unlabled_data.iloc[150, idx]), float(unlabled_data.iloc[150, idx + 1]), float(unlabled_data.iloc[150, idx + 2])]
+            battery_coo = [float(unlabled_data.iloc[index_to_use, idx]), float(unlabled_data.iloc[index_to_use, idx + 1]), float(unlabled_data.iloc[index_to_use, idx + 2])]
         if col_name.startswith('Unlabeled'):
-            dict_of_lists[col_name]  = [float(unlabled_data.iloc[150, idx]), float(unlabled_data.iloc[150, idx + 1]), float(unlabled_data.iloc[150, idx + 2])]
+            dict_of_lists[col_name]  = [float(unlabled_data.iloc[index_to_use, idx]), float(unlabled_data.iloc[index_to_use, idx + 1]), float(unlabled_data.iloc[index_to_use, idx + 2])]
             
     filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
     matching_keys = {}
