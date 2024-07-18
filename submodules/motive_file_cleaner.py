@@ -86,6 +86,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
                 break
 
 
+
     '''Removing useless columns and renaming the columns to the desired format'''
     combined_values = []
     columns_to_drop = [] 
@@ -116,9 +117,27 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     _data = _data.drop(_data.columns[columns_to_drop], axis=1)
     _data.columns = combined_values[1:]
     _data = _data.drop([0, 1, 2, 3])
-    _data = _data.dropna()
+    # _data = _data.dropna()
+    _data = _data.reset_index(drop=True)
+    # Filter columns
+    filtered_columns = [col for col in _data.columns if any(keyword in col for keyword in RigidBody)]
+    # Create new DataFrame with filtered columns
+    rigid_data = _data[filtered_columns]
+    # Step 1: Identify rows with NaN values
+    nan_rows = rigid_data.isna().any(axis=1)
+    # Step 2: Get indexes of rows with NaN values
+    indexes_with_nan = nan_rows[nan_rows].index.to_list()
+    _data = _data.drop(indexes_with_nan)
     _data = _data.reset_index(drop=True)
 
+    #########################################################################
+    ####### NEED TO ADD INTERPOLATION FUNCTIONALITY HERE FOR MARKERS ########
+    #########################################################################
+
+
+
+
+    #########################################################################
 
 
     '''Addding frame information, time information and sorting according to X,Y,Z,w,x,y,z with respect to robodk frame'''

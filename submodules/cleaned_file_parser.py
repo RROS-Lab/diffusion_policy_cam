@@ -53,7 +53,8 @@ class DataParser:
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
-            sorted_columns.remove(rb+'_state')
+            if rb+'_state' in sorted_columns:
+                sorted_columns.remove(rb+'_state')
             # Select processing method based on data type and column length
 
             if self.file_type == 'QUAT':
@@ -88,7 +89,8 @@ class DataParser:
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) 
-            sorted_columns.remove(rb+'_state')
+            if rb+'_state' in sorted_columns:
+                sorted_columns.remove(rb+'_state')
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
@@ -169,7 +171,7 @@ class DataParser:
         """
         time = {}  # Dictionary to store processed data
         
-        time = self.data['Time_stamp'].values
+        time = self.data['Time'].values
         
         return time
 

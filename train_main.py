@@ -35,6 +35,11 @@ obs_horizon = 2
 action_horizon = 8
 sample_size = 8
 
+action_item = ['chisel', 'gripper']
+obs_item = ['battery']
+
+
+
 # create network object
 noise_pred_net = md.ConditionalUnet1D(
     input_dim=action_dim,
@@ -94,12 +99,16 @@ for file in os.listdir(base_path):
         dict_of_df_rigid[file] = data.get_rigid_TxyzRxyz()
         dict_of_df_marker[file] = data.get_marker_Txyz()
         
-if len(dict_of_df_tool) == len(dict_of_df_rigid) == len(dict_of_df_marker):
-    rigiddataset, index = _df.episode_combiner(dict_of_df_rigid)
-    markerdataset, _ = _df.episode_combiner(dict_of_df_marker)
+item_name = data.rigid_bodies
+marker_name = data.markers
 
+if len(dict_of_df_rigid) == len(dict_of_df_marker):
 
-dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index,
+    rigiddataset, index = _df.episode_combiner(dict_of_df_rigid, item_name)
+    markerdataset, _ = _df.episode_combiner(dict_of_df_marker, marker_name)
+
+dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index[item_name[0]], 
+                                 action_item = action_item, obs_item = obs_item,
                                  pred_horizon=pred_horizon,
                                  obs_horizon=obs_horizon,
                                  action_horizon=action_horizon)

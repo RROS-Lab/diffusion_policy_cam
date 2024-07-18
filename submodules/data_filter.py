@@ -105,22 +105,27 @@ def episode_splitter(data_frame: pd.DataFrame, episode_length: Union[list, np.ar
 
     return episodes
 
-def episode_combiner(data_frames: dict) -> list:
+def episode_combiner(item_data: dict[str: dict[str: list]], item_name: list ) -> tuple[dict[str: list], dict[str: list]]:
     """
     Args : dict of np.arryas
     Returns a single data frame with all the data frames combined and there indexes
     """
-    combined_data = []
-    indexes = []
-    cumulative_count = 0
+    # Initialize a new dictionary to store concatenated values and their indices
+    concatenated_dict = {key: [] for key in item_name}
 
-    # Loop through each key (assuming data_frames is a dictionary)
-    for key in data_frames.keys():
-        combined_data.append(data_frames[key])  # Append data as numpy array
-        cumulative_count += len(data_frames[key])
-        # Store cumulative count as index
-        indexes.append(cumulative_count) 
-    combined_data = np.concatenate(combined_data, axis=0)
+    # Initialize a dictionary to store indices
+    index_dict = {key: [] for key in item_name}
 
-    return combined_data, indexes
+    # Iterate through the outer dictionary keys
+    for outer_key in item_data.keys():
+        # Iterate through the keys 'battery', 'gripper', 'chisel'
+        for inner_key in item_name:
+            
+            # Extend the values for the current inner_key
+            concatenated_dict[inner_key].extend(item_data[outer_key][inner_key])
+            
+            # Store the indices along with the original key
+            index_dict[inner_key].append(len(concatenated_dict[inner_key]))
+
+    return concatenated_dict, index_dict
  
