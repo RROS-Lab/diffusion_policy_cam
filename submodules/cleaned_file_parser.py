@@ -169,7 +169,7 @@ class DataParser:
         """
         time = {}  # Dictionary to store processed data
         
-        time = self.data['Time'].values
+        time = self.data['Time_stamp'].values
         
         return time
 

@@ -78,9 +78,9 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
     matching_keys = {}
     for key in filtered_dict.keys():
-        vector_ab = np.round(np.array(battery_coo) - filtered_dict[key], 2)
+        vector_ab = np.round(np.array(battery_coo), 2) - np.round(filtered_dict[key], 2)
         for common_key, common_value in common_values.items():
-            if (vector_ab[0], vector_ab[2]) == common_value:
+            if (np.round(vector_ab[0], 2), np.round(vector_ab[2], 2)) == common_value:
                 matching_keys[common_key] = key
                 break
 
