@@ -16,6 +16,29 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
     '''
     dict_of_lists = {}
+    common_values = {
+        'A1': (-0.16, -0.08),
+        'A2': (-0.16, 0.0),
+        'A3': (-0.16, 0.08),
+        'B1': (-0.0, -0.08),
+        'B2': (-0.0, 0.0),
+        'B3': (-0.0, 0.08),
+        'C1': (0.15, -0.08),
+        'C2': (0.15, 0.0),
+        'C3': (0.15, 0.07)}
+
+    RigidBody = { 'battery', 'chisel', 'gripper'}
+    Marker = { 'A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'}
+    combined_set = RigidBody.union(Marker)
+
+    _params = {
+        'RigidBody': {'len':7,
+                    'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']},
+        'Marker': {'len':3,
+                    'dof': ['X', 'Y', 'Z']}
+    }
+
+
     name = csv_path.split('/')[-1]
     file = re.sub(r'\.csv', '_cleaned.csv', name)
     if not os.path.exists(save_path):
@@ -34,7 +57,6 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     row3 = _data.iloc[2]
 
     colums_val = []
-
     for index, (val , val1) in enumerate(zip(row1, row2)):
         if str(val).startswith('Unlabeled'):
             colums_val.append(index)
@@ -43,79 +65,41 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
             
     unlabled_data = _data.iloc[:,colums_val]
-
-
     for idx in range(0, len(unlabled_data.columns), 3):
         col_name = unlabled_data.iloc[0, idx]
-
         if col_name.startswith('RigidBody'):
-            x = float(unlabled_data.iloc[150, idx])
-            y = float(unlabled_data.iloc[150, idx + 1])
-            z = float(unlabled_data.iloc[150, idx + 2])
-            battery_coo = [x, y, z]
-
+            battery_coo = [float(unlabled_data.iloc[150, idx]), float(unlabled_data.iloc[150, idx + 1]), float(unlabled_data.iloc[150, idx + 2])]
         if col_name.startswith('Unlabeled'):
-            # dist_col_name = f'battery_{col_name}_Distance'
-            x = float(unlabled_data.iloc[150, idx])
-            y = float(unlabled_data.iloc[150, idx + 1])
-            z = float(unlabled_data.iloc[150, idx + 2])
-            point = [x, y, z]
-            dict_of_lists[col_name] = point
+            dict_of_lists[col_name]  = [float(unlabled_data.iloc[150, idx]), float(unlabled_data.iloc[150, idx + 1]), float(unlabled_data.iloc[150, idx + 2])]
             
     filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
-        
-
-    P = np.array(battery_coo)
-    vec = {}
-    for key in filtered_dict.keys():
-        vector_ab = P - filtered_dict[key]
-        vec[key] = np.round(vector_ab[0], 2), np.round(vector_ab[2], 2)
-
-    common_values = {
-        'A1': (-0.16, -0.08),
-        'A2': (-0.16, 0.0),
-        'A3': (-0.16, 0.08),
-        'B1': (-0.0, -0.08),
-        'B2': (-0.0, 0.0),
-        'B3': (-0.0, 0.08),
-        'C1': (0.15, -0.08),
-        'C2': (0.15, 0.0),
-        'C3': (0.15, 0.07)}
-
     matching_keys = {}
-
-    for key, value in vec.items():
+    for key in filtered_dict.keys():
+        vector_ab = np.round(np.array(battery_coo) - filtered_dict[key], 2)
         for common_key, common_value in common_values.items():
-            if value == common_value:
+            if (vector_ab[0], vector_ab[2]) == common_value:
                 matching_keys[common_key] = key
                 break
 
     combined_values = []
-    object_values = []
     columns_to_drop = [] 
-
     for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
         if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
 
             if str(a) in matching_keys.values():
-                object_values.append('Marker')
                 combined_values.append(next((key for key, value in matching_keys.items() if value == str(a)), None) + '_' + c)
             elif'Marker' in str(a):
                 columns_to_drop.append(index)
             elif 'RigidBody' in str(a):
-                object_values.append('RigidBody')
                 combined_values.append('battery_' + c.lower())
             else:
-                object_values.append('RigidBody')
                 combined_values.append(str(a).split("_")[0] + '_' + c.lower())
         else:
             if str(a) in matching_keys.values():
-                object_values.append('Marker')
                 combined_values.append(next((key for key, value in matching_keys.items() if value == str(a)), None) + '_' + c)
             elif 'Marker' in str(a) or 'Active' in str(a):
                 columns_to_drop.append(index)
             elif 'RigidBody' in str(a):
-                object_values.append('RigidBody')
                 combined_values.append('battery_' + c)
             elif str(a) not in matching_keys.values() and str(a).startswith('Unlabeled'):
                 columns_to_drop.append(index)
@@ -132,17 +116,6 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     _data = _data.dropna()
     _data = _data.reset_index(drop=True)
 
-
-    RigidBody = { 'battery', 'chisel', 'gripper'}
-    Marker = { 'A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'}
-    combined_set = RigidBody.union(Marker)
-
-    _params = {
-        'RigidBody': {'len':7,
-                    'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']},
-        'Marker': {'len':3,
-                    'dof': ['X', 'Y', 'Z']}
-    }
 
     _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
     _rb_col_names = [f"{rb}_{axis}" for rb in RigidBody for axis in _params['RigidBody']['dof']]
