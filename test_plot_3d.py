@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 # from submodules.trajectory_animator import TrajectoryAnimator
 
-def get_visualization(data, target_path=None, video=False):
+def get_visualization(data, save_path=None, video=False):
     
 
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
@@ -56,14 +56,13 @@ def get_visualization(data, target_path=None, video=False):
     # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
 
     
-
     
     #plot intial battery markers
     if not video:
         plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
         plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
         plot.plot_nodes(ax1, nodes=np.array(intial_markers))
-        plt.show()
+        
     
     if video:
         ani = plot.animate_multiple_trajectories(ax=ax1,
@@ -73,15 +72,22 @@ def get_visualization(data, target_path=None, video=False):
                                                  quiver_size=0.07,
                                                  path_line_width=0.4)
     
-        if target_path:
-            ani.save(target_path, writer='ffmpeg', fps=data.fps)
-
+    
+    if save_path:
+        if video:
+            ani.save(save_path, writer='ffmpeg', fps=data.fps)
+        if not video:
+            plt.savefig(save_path)
+        plt.close()
+    
+    if not save_path:
         plt.show()
+
 
 if __name__ == "__main__":
     import submodules.cleaned_file_parser as cfp
     import submodules.plot_traj_3d as pt3d
-
+    import os
 
     #write
     
@@ -92,17 +98,22 @@ if __name__ == "__main__":
 
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+    base_dir = './diffusion_pipline/data_chisel_task/cleaned_traj/'
+    save_dir = './diffusion_pipline/data_chisel_task/plots/'
+    cleaned_file_names = os.listdir(base_dir)
 
-    read_path = './no-sync/outputs/test_128_scratch_rpy.csv'
-    data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+    for file_name in cleaned_file_names:
+        read_path = os.path.join(base_dir, file_name)
+        data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+        file_name = read_path.split('/')[-1].split('.')[0]
+
+        # data.save_2_csv(file_path=write_path, save_type='EULER')
+        try:
+            get_visualization(data=data,
+                            save_path=os.path.join(save_dir, file_name + '.png'),
+                            video=False)
+        except Exception as e:
+            print(f'file: {file_name} failed with error: \n\n{e}')
+            continue
 
     
-    # data.save_2_csv(write_path) #TODO
-
-
-    # data.save_2_csv(file_path=write_path, save_type='EULER')
-    # data.get_rigid_TxyzRxyz()
-    get_visualization(data=data,
-              target_path="./no-sync/outputs/",
-              video=False)
-    # get_video()
