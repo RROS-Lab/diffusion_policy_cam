@@ -16,6 +16,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
     '''
     dict_of_lists = {}
+    #Hardcoded values for the common values of the markers and the battery
     common_values = {
         'A1': (-0.16, -0.08),
         'A2': (-0.16, 0.0),
@@ -56,13 +57,15 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     row2 = _data.iloc[1]
     row3 = _data.iloc[2]
 
+
+
+    '''Establishing the common values for the markers and the battery'''
     colums_val = []
     for index, (val , val1) in enumerate(zip(row1, row2)):
         if str(val).startswith('Unlabeled'):
             colums_val.append(index)
         if str(val).startswith('RigidBody') and 'Marker'  not in str(val) and 'Rotation' not in str(val1):
             colums_val.append(index)
-
             
     unlabled_data = _data.iloc[:,colums_val]
     for idx in range(0, len(unlabled_data.columns), 3):
@@ -81,33 +84,32 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
                 matching_keys[common_key] = key
                 break
 
+
+    '''Removing useless columns and renaming the columns to the desired format'''
     combined_values = []
     columns_to_drop = [] 
     for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
+        key_match = next((key for key, value in matching_keys.items() if value == str(a)), None)
         if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
-
-            if str(a) in matching_keys.values():
-                combined_values.append(next((key for key, value in matching_keys.items() if value == str(a)), None) + '_' + c)
-            elif'Marker' in str(a):
+            if key_match:
+                combined_values.append(f"{key_match}_{c}")
+            elif 'Marker' in str(a):
                 columns_to_drop.append(index)
             elif 'RigidBody' in str(a):
-                combined_values.append('battery_' + c.lower())
+                combined_values.append(f"battery_{c.lower()}")
             else:
-                combined_values.append(str(a).split("_")[0] + '_' + c.lower())
+                combined_values.append(f"{str(a).split('_')[0]}_{c.lower()}")
         else:
-            if str(a) in matching_keys.values():
-                combined_values.append(next((key for key, value in matching_keys.items() if value == str(a)), None) + '_' + c)
+            if key_match:
+                combined_values.append(f"{key_match}_{c}")
             elif 'Marker' in str(a) or 'Active' in str(a):
                 columns_to_drop.append(index)
             elif 'RigidBody' in str(a):
-                combined_values.append('battery_' + c)
-            elif str(a) not in matching_keys.values() and str(a).startswith('Unlabeled'):
+                combined_values.append(f"battery_{c}")
+            elif str(a).startswith('Unlabeled'):
                 columns_to_drop.append(index)
             else:
-                if 'Time' in str(c):
-                    combined_values.append('Time')
-                else:
-                    combined_values.append(str(a).split("_")[0] + '_' + c)
+                combined_values.append('Time' if 'Time' in str(c) else f"{str(a).split('_')[0]}_{c}")
                 
     columns_to_drop.append(0)
     _data = _data.drop(_data.columns[columns_to_drop], axis=1)
@@ -117,6 +119,8 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     _data = _data.reset_index(drop=True)
 
 
+
+    '''Addding frame information, time information and sorting according to X,Y,Z,w,x,y,z with respect to robodk frame'''
     _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
     _rb_col_names = [f"{rb}_{axis}" for rb in RigidBody for axis in _params['RigidBody']['dof']]
     _mk_col_names = [f"{mk}_{axis}" for mk in Marker for axis in _params['Marker']['dof']]

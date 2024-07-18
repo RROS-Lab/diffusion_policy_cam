@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pandas as pd
 import re
+import os
 import matplotlib.pyplot as plt
 # from scipy.spatial.transform import Rotation
 from matplotlib.backends.backend_pdf import PdfPages
@@ -86,14 +87,13 @@ print("..........")
 #     # create_xy_video(_data['GP'], _data['BxP'], _data['SP'], fps=30, video_filename=f'videos/output_{key}.avi', marker_list=['o', 'x', '*'])
 
 
-dir_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/test_128.csv'
+dir_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/'
 save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/'
 
-# for file in os.listdir(dir_path):
-#     if file.endswith(".csv"):
-#         print(file)
-
-
-mfc.motive_chizel_task_cleaner(
-    csv_path = dir_path, save_path=save_path
-)
+for file in os.listdir(dir_path):
+    if file.endswith(".csv"):
+        path = os.path.join(dir_path, file)
+        # print(path)
+        mfc.motive_chizel_task_cleaner(
+            csv_path = path, save_path=save_path
+        )
