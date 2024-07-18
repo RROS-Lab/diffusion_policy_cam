@@ -53,7 +53,7 @@ class DataParser:
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
-            
+            sorted_columns.remove(rb+'_state')
             # Select processing method based on data type and column length
 
             if self.file_type == 'QUAT':
@@ -63,6 +63,7 @@ class DataParser:
 
             elif self.file_type == 'EULER':
                 rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
+
 
         for key, value in kwargs.items():
             if key == 'item':
@@ -87,8 +88,7 @@ class DataParser:
         for rb in self.rigid_bodies:
             rb_columns = [col for col in self.data.columns if col.startswith(rb)]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) 
-            
-
+            sorted_columns.remove(rb+'_state')
             
             # Select processing method based on data type and column length
             if self.file_type == 'QUAT':
@@ -132,18 +132,46 @@ class DataParser:
 
         return mk_Txyz
 
-    
-    @classmethod
-    def from_euler_file(self, file_path, target_fps: float, filter: bool = False, window_size: int = 15, polyorder: int = 3):
+    def get_rigid_state(self, **kwargs) -> dict[str: np.ndarray]:
+        """
+        get state of rigid body data from a DataFrame.
+        
+        Args:
+        - data (pd.DataFrame): The input DataFrame containing the data.
+        - rigid_bodies (list): List of rigid body names to process.
+        
+        Returns:
+        - dict: Dictionary containing processed rigid body state data for each rigid body.
+        """
+        rb_state = {}  # Dictionary to store processed data
+        
+        for rb in self.rigid_bodies:
+            rb_columns = [col for col in self.data.columns if col.startswith(rb) and col.endswith('state')]
+            # Select processing method based on data type and column length
+            rb_state[rb] = self.data[rb_columns].values
 
-        return DataParser(file_path, 'EULER', target_fps, filter, window_size, polyorder)
+        for key, value in kwargs.items():
+            if key == 'item':
+                return {key: rb_state[key] for key in value if key in rb_state}
+        
+        return rb_state
     
 
-    
-    @classmethod
-    def from_quat_file(self, file_path, target_fps: float | None, filter: bool = False, window_size: int = 15, polyorder: int = 3):
-        return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
-    
+    def get_time(self, **kwargs) -> np.ndarray:
+        """
+        Get time data from a DataFrame.
+        
+        Args:
+        - data (pd.DataFrame): The input DataFrame containing the data.
+        
+        Returns:
+        - np.ndarray: Array containing time data.
+        """
+        time = {}  # Dictionary to store processed data
+        
+        time = self.data['Time'].values
+        
+        return time
 
     def save_2_csv(self, file_path, save_type='QUAT'):
         # add first rows
@@ -178,6 +206,19 @@ class DataParser:
             writer.writerow(_HEADER_ROW)
             writer.writerows(_transformed_data)
 
+
+
+    @classmethod
+    def from_euler_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
+
+        return DataParser(file_path, 'EULER', target_fps, filter, window_size, polyorder)
+    
+
+    
+    @classmethod
+    def from_quat_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
+        return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
+    
 
     def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float, 
                  filter: bool = False, window_size: int = 15, polyorder: int = 3):

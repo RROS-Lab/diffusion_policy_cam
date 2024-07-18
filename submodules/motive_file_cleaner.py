@@ -120,14 +120,14 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
             elif str(a) not in matching_keys.values() and str(a).startswith('Unlabeled'):
                 columns_to_drop.append(index)
             else:
-                object_values.append('RigidBody')
-                combined_values.append(str(a).split("_")[0] + '_' + c)
+                if 'Time' in str(c):
+                    combined_values.append('Time')
+                else:
+                    combined_values.append(str(a).split("_")[0] + '_' + c)
                 
     columns_to_drop.append(0)
-    columns_to_drop.append(1)
     _data = _data.drop(_data.columns[columns_to_drop], axis=1)
-    _data.columns = combined_values[2:]
-
+    _data.columns = combined_values[1:]
     _data = _data.drop([0, 1, 2, 3])
     _data = _data.dropna()
     _data = _data.reset_index(drop=True)
@@ -144,12 +144,12 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
                     'dof': ['X', 'Y', 'Z']}
     }
 
-    _SUP_HEADER_ROW = (["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
     _rb_col_names = [f"{rb}_{axis}" for rb in RigidBody for axis in _params['RigidBody']['dof']]
     _mk_col_names = [f"{mk}_{axis}" for mk in Marker for axis in _params['Marker']['dof']]
-    _HEADER_ROW = _rb_col_names + _mk_col_names
+    _HEADER_ROW = ['Time'] +_rb_col_names + _mk_col_names
     _data = _data.reindex(columns=_HEADER_ROW)
-    state_dict = {_rb: _params['RigidBody']['len'] * i for i, _rb in enumerate(RigidBody, start=1)}
+    state_dict = {_rb: _params['RigidBody']['len'] * i + 1 for i, _rb in enumerate(RigidBody, start=1)}
     add_row = pd.DataFrame([pd.Series([name, rate] + [np.nan] * (len(_data.columns) - 2), index=_data.columns, dtype=str)], columns=_data.columns)
     item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=_data.columns)
 
@@ -163,11 +163,11 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
 
     _data = pd.concat([_data.iloc[:0], add_row, item_row, _data.iloc[0:]], ignore_index=True)
     _data = _data.reset_index(drop=True)
-    add_col = pd.DataFrame(np.reshape(np.full_like(_data.iloc[:,0], -1, dtype=int), (-1, 1)), columns=['RigidBody'])
+    # add_col = pd.DataFrame(np.reshape(np.full_like(_data.iloc[:,0], -1, dtype=int), (-1, 1)), columns=['RigidBody'])
     _data.columns = _SUP_HEADER_ROW
     offset = 0
     for key , vals in state_dict.items():
-        add_col.iloc[1] = key + '_state'
+        add_col = pd.DataFrame(np.reshape(([np.nan] + [key + '_state'] + [-1] * (len(_data) - 2)), (-1, 1)), columns=['RigidBody'])
         _data.insert(loc=vals + offset ,column = 'RigidBody', value=add_col, allow_duplicates=True)
         offset += 1
 
