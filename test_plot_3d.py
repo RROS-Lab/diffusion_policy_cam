@@ -120,7 +120,6 @@ if __name__ == "__main__":
             get_visualization(data=data,
                             save_path=os.path.join(save_dir, file_name + '.png'),
                             video=False)
-            plt.show()
         except Exception as e:
             print(f'file: {file_name} failed with error: \n\n{e}')
             # continue
