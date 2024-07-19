@@ -1,6 +1,5 @@
 from submodules.plot_traj_3d import PlotTraj3D
 from submodules import robomath_addon as rma
-import submodules.motive_file_parser as mfp
 import numpy as np
 from matplotlib import pyplot as plt
 # from submodules.trajectory_animator import TrajectoryAnimator
