@@ -5,20 +5,27 @@ import submodules.cleaned_file_parser as cfp
 import submodules.data_filter as _df
 import os
 
-path = '/home/cam/Downloads/test/test_test_127_cleaned.csv'
+path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/try_test/new_clean.csv'
 
 data = cfp.DataParser.from_euler_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
 
 print(data.rigid_bodies)
+print(data.markers)
 
-rigid = data.get_rigid_TxyzQwxyz(item = ['gripper'])
+rigid = data.get_rigid_TxyzRxyz()
 # rigid_state = data.get_rigid_state(item = ['chisel'])
-# markers = data.get_marker_Txyz(marker = ['A1'])
+markers = data.get_marker_Txyz()
 # time = data.get_time()
 
 
-print(rigid['gripper'])
-# print(markers['A1'][0])
+print(rigid['gripper'][0])
+print(rigid['chisel'][0])
+# for i in range(5):
+    # print(markers['A1'][-i][0])
+    # print(markers['B1'][-i][0])
+    # print(markers['C1'][-i][0])
+
+print(markers['A1'][0])
 # print(rigid_state['chisel'][0])
 # print(time[0])
 
