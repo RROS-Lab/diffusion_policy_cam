@@ -38,8 +38,6 @@ sample_size = 8
 action_item = ['chisel', 'gripper']
 obs_item = ['battery']
 
-
-
 # create network object
 noise_pred_net = md.ConditionalUnet1D(
     input_dim=action_dim,
@@ -82,12 +80,10 @@ device = torch.device('cuda')
 _ = noise_pred_net.to(device)
 
 # create dataset from file
-# create dataset from file
 # path_name = "/home/cam/Downloads/Supporting Data - Sheet1.csv"
-base_path = "/home/cam/Downloads/sean & Li 2 exports/"
+base_path = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/"
 
 # Load data
-dict_of_df_tool = {}
 dict_of_df_rigid = {}
 dict_of_df_marker = {}
 
@@ -95,7 +91,7 @@ dict_of_df_marker = {}
 for file in os.listdir(base_path):
     if file.endswith(".csv") and file.startswith("cap"):
         path_name = base_path + file
-        data = cfp.DataParser.from_quat_file(file_path = path_name, filter=True, window_size=15, polyorder=3)
+        data = cfp.DataParser.from_quat_file(file_path = path_name, target_fps=120.0, filter=False, window_size=15, polyorder=3)
         dict_of_df_rigid[file] = data.get_rigid_TxyzRxyz()
         dict_of_df_marker[file] = data.get_marker_Txyz()
         
@@ -106,9 +102,11 @@ if len(dict_of_df_rigid) == len(dict_of_df_marker):
 
     rigiddataset, index = _df.episode_combiner(dict_of_df_rigid, item_name)
     markerdataset, _ = _df.episode_combiner(dict_of_df_marker, marker_name)
+    print(index[action_item[0]])
 
-dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index[item_name[0]], 
+dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index[action_item[0]], 
                                  action_item = action_item, obs_item = obs_item,
+                                 marker_item= marker_name,
                                  pred_horizon=pred_horizon,
                                  obs_horizon=obs_horizon,
                                  action_horizon=action_horizon)

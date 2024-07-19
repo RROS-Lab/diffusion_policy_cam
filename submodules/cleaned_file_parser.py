@@ -56,7 +56,6 @@ class DataParser:
             if rb+'_state' in sorted_columns:
                 sorted_columns.remove(rb+'_state')
             # Select processing method based on data type and column length
-
             if self.file_type == 'QUAT':
                 #motive data
                 # rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, self.data[sorted_columns].values.astype(float))
@@ -64,7 +63,6 @@ class DataParser:
 
             elif self.file_type == 'EULER':
                 rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
-
 
         for key, value in kwargs.items():
             if key == 'item':

@@ -43,7 +43,6 @@ obs_item = ['battery']
 base_path = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/"
 
 # Load data
-dict_of_df_tool = {}
 dict_of_df_rigid = {}
 dict_of_df_marker = {}
 
@@ -62,9 +61,11 @@ if len(dict_of_df_rigid) == len(dict_of_df_marker):
 
     rigiddataset, index = _df.episode_combiner(dict_of_df_rigid, item_name)
     markerdataset, _ = _df.episode_combiner(dict_of_df_marker, marker_name)
+    print(index[action_item[0]])
 
 dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index[action_item[0]], 
                                  action_item = action_item, obs_item = obs_item,
+                                 marker_item= marker_name,
                                  pred_horizon=pred_horizon,
                                  obs_horizon=obs_horizon,
                                  action_horizon=action_horizon)
