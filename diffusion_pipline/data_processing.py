@@ -109,16 +109,18 @@ def unnormalize_data(ndata, stats):
 class TaskStateDataset(torch.utils.data.Dataset):
     def __init__(self, Rigiddataset: Union[list, np.array, None],
                   Markerdataset: Union[list, np.array, None], index,
-                  action_item: list, obs_item: list,
+                  action_item: list, obs_item: list, marker_item: list,
                  pred_horizon, obs_horizon, action_horizon):
 
         action = []
         obs = []
         for i in range(index[-1]):
             # a = []
-            a = [*Rigiddataset[action_item[i]], *Markerdataset[action_item[i]]]
-            print(a)
-            b = [*Rigiddataset[obs_item[i]], *Markerdataset[i]]
+            a = np.concatenate([Rigiddataset[item][i] for item in action_item])
+            # print(a)
+
+            b = np.concatenate([Rigiddataset[item][i] for item in action_item] + [Rigiddataset[item][i] for item in obs_item] + [Markerdataset[item][i] for item in marker_item])
+            # print(b)
             
             action.append(a)
             obs.append(b)
