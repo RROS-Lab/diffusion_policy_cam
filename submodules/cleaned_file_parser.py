@@ -1,9 +1,9 @@
 import pandas as pd
 # import submodules.robomath_addon as rma
-import submodules.robomath_addon as rma
+import diffusion_policy_cam.submodules.robomath_addon as rma
 import numpy as np
 # import submodules.data_filter as _df
-import submodules.data_filter as _df
+import diffusion_policy_cam.submodules.data_filter as _df
 from typing import Union
 import csv
 

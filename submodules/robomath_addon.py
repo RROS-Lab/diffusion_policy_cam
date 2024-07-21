@@ -1,5 +1,5 @@
 # import submodules.robomath as rm
-import submodules.robomath as rm
+import diffusion_policy_cam.submodules.robomath as rm
 import numpy as np
 from typing import Union
 
