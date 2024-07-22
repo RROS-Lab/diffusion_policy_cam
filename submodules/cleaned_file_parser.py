@@ -184,19 +184,21 @@ class DataParser:
                       '__gettr__': self.get_rigid_TxyzRxyz}
         }
         
-        _SUP_HEADER_ROW = (["RigidBody"] * len(self.rigid_bodies) * _params[save_type]['len'] + ["Marker"] * len(self.markers) * 3)
+        _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(self.rigid_bodies) * _params[save_type]['len'] + ["Marker"] * len(self.markers) * 3)
         _FPS_ROW = ["FPS", self.fps] + [0.0]*(len(_SUP_HEADER_ROW) - 2)
         _rb_col_names = [f"{rb}_{axis}" for rb in self.rigid_bodies for axis in _params[save_type]['dof']]
         _mk_col_names = [f"{mk}_{axis}" for mk in self.markers for axis in ['X', 'Y', 'Z']]
-        _HEADER_ROW = _rb_col_names + _mk_col_names
+        _HEADER_ROW = ['Time']+_rb_col_names + _mk_col_names
 
         _dict_data_rigid = _params[save_type]['__gettr__']()
         _dict_data_marker = self.get_marker_Txyz()
+        _dict_data_time = self.get_time()
+        _dict_data_time = _dict_data_time.reshape((len(_dict_data_time), 1))
 
         # concatenate all the data into a single array for _dict_data_rigid
         _transformed_data_rigid = np.concatenate([_dict_data_rigid[rb] for rb in self.rigid_bodies], axis=1)
         _transformed_data_marker = np.concatenate([_dict_data_marker[mk] for mk in self.markers], axis=1)
-        _transformed_data = np.concatenate([_transformed_data_rigid, _transformed_data_marker], axis=1)
+        _transformed_data = np.concatenate([_dict_data_time, _transformed_data_rigid, _transformed_data_marker], axis=1)
 
         # save as csv file with SUP_HEADER_ROW, FPS_ROW, HEADER_ROW, and _transformed_data
         with open(file_path, 'w') as file:

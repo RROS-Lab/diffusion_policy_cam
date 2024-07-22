@@ -33,7 +33,7 @@ action_dim = 13
 pred_horizon = 16
 obs_horizon = 2
 action_horizon = 8
-sample_size = 8
+target_fps = 120.0
 
 action_item = ['chisel', 'gripper']
 obs_item = ['battery']
@@ -50,7 +50,7 @@ dict_of_df_marker = {}
 for file in os.listdir(base_path):
     if file.endswith(".csv") and file.startswith("cap"):
         path_name = base_path + file
-        data = cfp.DataParser.from_quat_file(file_path = path_name, target_fps=120.0, filter=False, window_size=15, polyorder=3)
+        data = cfp.DataParser.from_quat_file(file_path = path_name, target_fps=target_fps, filter=False, window_size=15, polyorder=3)
         dict_of_df_rigid[file] = data.get_rigid_TxyzRxyz()
         dict_of_df_marker[file] = data.get_marker_Txyz()
         
@@ -61,7 +61,7 @@ if len(dict_of_df_rigid) == len(dict_of_df_marker):
 
     rigiddataset, index = _df.episode_combiner(dict_of_df_rigid, item_name)
     markerdataset, _ = _df.episode_combiner(dict_of_df_marker, marker_name)
-    print(index[action_item[0]])
+    # print(index[action_item[0]])
 
 dataset = dproc.TaskStateDataset(rigiddataset, markerdataset, index[action_item[0]], 
                                  action_item = action_item, obs_item = obs_item,
