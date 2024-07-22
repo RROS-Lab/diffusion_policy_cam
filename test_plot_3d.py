@@ -101,8 +101,8 @@ if __name__ == "__main__":
 
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-    base_dir = './no-sync/offset_exps/test_eular_offset'
-    save_dir = './no-sync/offset_exps/plots_test_eular_offset'
+    base_dir = './diffusion_pipline/scratch/scratch_csvs'
+    save_dir = './diffusion_pipline/scratch/scratch_plots'
     
     cleaned_file_names = os.listdir(base_dir)
 
