@@ -22,7 +22,7 @@ def distance(current : np.array, next: np.array) -> float:
     return distance
 
 
-def apply_savgol_filter(df: pd.DataFrame, window_size: int, polyorder: int) -> pd.DataFrame:
+def apply_savgol_filter(df: pd.DataFrame, window_size: int, polyorder: int, time_frame: bool = True) -> pd.DataFrame:
     """
     Applies Savitzky-Golay filter to all columns in the DataFrame.
 
@@ -37,7 +37,9 @@ def apply_savgol_filter(df: pd.DataFrame, window_size: int, polyorder: int) -> p
     pd.DataFrame: DataFrame with smoothed columns.
     """
     smoothed_df = df.copy()
-    for col in df.columns:
+    for index, col in enumerate(df.columns):
+        if index == 0 and time_frame:
+            continue
         smoothed_df[col].iloc[1:] = savgol_filter(df[col].iloc[1:], window_size, polyorder)
     return smoothed_df
 

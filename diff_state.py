@@ -4,6 +4,8 @@
 from submodules.plot_traj_3d import PlotTraj3D
 import numpy as np
 from matplotlib import pyplot as plt
+import pandas as pd
+import submodules.data_filter as _df
 
 # from submodules.trajectory_animator import TrajectoryAnimator
 
@@ -40,7 +42,7 @@ if __name__ == "__main__":
         read_path = os.path.join(base_dir, file_name)
         data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
 
-        data_time = data.get_time()
+        data_time = data.get_time().astype(float)
         data_state_dict = data.get_rigid_TxyzRxyz()
 
         # use the time and state data to get the velocity data
@@ -49,11 +51,15 @@ if __name__ == "__main__":
             data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
             for i in range(1, len(data_time)):
                 data_velocity_dict[key][i] = (data_state_dict[key][i] - data_state_dict[key][i-1]) / (data_time[i] - data_time[i-1])
+                velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
+                filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
+                data_velocity_dict[key] = filtered_velocity.values
+                print("Something is done")
 
 
         #save the data_velocity_dict to csv
-        file_name = read_path.split('/')[-1].split('.')[0]
-        file_path_velocity = os.path.join(save_dir, 'velocity'+ file_name + '.csv')
+        # file_name = read_path.split('/')[-1].split('.')[0]
+        # file_path_velocity = os.path.join(save_dir, 'velocity'+ file_name + '.csv')
         # convert the dictionary to a pandas dataframe
         # data_velocity = cfp.DataParser.from_dict(data_velocity_dict)
         # data_velocity.save_2_csv(file_path=file_path_velocity, save_type='EULER')

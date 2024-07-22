@@ -16,7 +16,7 @@ def process_data(data :pd.DataFrame,
     _new_data = _df.fps_sampler(data[1:], target_fps = fps, input_fps=input_fps)
 
     if filter:
-        _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder)
+        _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder, time_frame= True)
     return _new_data
 
 
