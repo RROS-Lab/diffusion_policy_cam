@@ -131,3 +131,23 @@ def episode_combiner(item_data: dict[str: dict[str: list]], item_name: list ) ->
 
     return concatenated_dict, index_dict
  
+def state_to_velocity(data_state_dict: dict[str :np.array], data_time: np.array, ignore_item: list) -> dict[str :list]:
+    """
+    Args : dict of np.arryas, list of np vaules, ignore_item list
+    Returns a single dict with there velocity
+    """
+
+    data_velocity_dict = {}
+
+    for key in data_state_dict.keys():
+        if key not in ignore_item:
+            data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
+            for i in range(1, len(data_time)):
+                data_velocity_dict[key][i] = (data_state_dict[key][i] - data_state_dict[key][i-1]) / (data_time[i] - data_time[i-1])
+            velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
+            filtered_velocity = apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
+            data_velocity_dict[key] = filtered_velocity.values
+        else:
+            data_velocity_dict[key] = data_state_dict[key]
+
+    return data_velocity_dict

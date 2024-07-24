@@ -10,32 +10,32 @@ def add_marker_offset(position: np.array ,X: int,Y: int,Z: int)-> np.array:
     return position
 
 # def add_rigidbody_offset(position: np.array ,X: int,Y: int,Z: int, W: int = 0, x:int= 0, y:int= 0, z:int = 0)-> np.array:
-def add_rigidbody_offset(position: np.array ,X: int,Y: int,Z: int, x:int= 0, y:int= 0, z:int = 0)-> np.array:
+def add_rigidbody_offset(save_type: str, position: np.array ,X: int,Y: int,Z: int, w:int = 0, x:int= 0, y:int= 0, z:int = 0)-> np.array:
 
-    position = position + np.array([X,Y,Z,x,y,z])
+    if save_type == 'EULER':
+        position = position + np.array([X,Y,Z,x,y,z])
+    if save_type == 'QUAT':
+        position = position + np.array({X,Y,Z,w,x,y,z})
+
     return position
 
 save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_eular_offset/'
 
+path_dir = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/'
 
-
-path_dir = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_xpos_shift/'
-# path_dir = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_ypos_shift/'
-# path_dir = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_xneg_shift/'
-# path_dir = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_yneg_shift/'
-
-X_offset = 0
-Y_offset = 0
-Z_offset = 0
+X_offset = 0.1
+Y_offset = 0.1
+Z_offset = 0.05
 
 for index, file in enumerate(os.listdir(path_dir)):
-    file_name = file
+    if index % 3 == 0:
+        X_offset = np.random.uniform(-0.3, 0.3)
+        Y_offset = np.random.uniform(-0.3, 0.3)
+        Z_offset = np.random.uniform(-0.05, 0.05)
 
-    # file_name = re.sub(r'\.csv', '_xpos_5cm_offset.csv', file)
-    # file_name = re.sub(r'\.csv', '_ypos_20cm_offset.csv', file)
-    # file_name = re.sub(r'\.csv', '_xneg_20cm_offset.csv', file)
-    # file_name = re.sub(r'\.csv', '_yneg_20cm_offset.csv', file)
-
+    
+    file_name = re.sub(r'\.csv', f'_x_{X_offset}_y_{Y_offset}_z_{Z_offset}_offset.csv', file)
+    
     file_path = os.path.join(save_path, file_name)
 
     path_name = path_dir + file
@@ -65,8 +65,8 @@ for index, file in enumerate(os.listdir(path_dir)):
     _dict_data_time = _dict_data_time.reshape((len(_dict_data_time), 1))
 
     # concatenate all the data into a single array for _dict_data_rigid
-    _transformed_data_rigid = np.concatenate([add_rigidbody_offset(_dict_data_rigid[rb], X_offset, Y_offset, Z_offset) if 'battery' in rb else _dict_data_rigid[rb] for rb in data.rigid_bodies], axis=1)
-    _transformed_data_marker = np.concatenate([add_marker_offset(_dict_data_marker[mk], X_offset, Y_offset, Z_offset) for mk in data.markers], axis=1)
+    _transformed_data_rigid = np.concatenate([add_rigidbody_offset(_dict_data_rigid[rb], X_offset, Y_offset, Z_offset) for rb in data.rigid_bodies], axis=1)
+    _transformed_data_marker = np.concatenate([add_marker_offset(save_type,_dict_data_marker[mk], X_offset, Y_offset, Z_offset) for mk in data.markers], axis=1)
     _transformed_data = np.concatenate([_dict_data_time, _transformed_data_rigid, _transformed_data_marker], axis=1)
 
     # save as csv file with SUP_HEADER_ROW, FPS_ROW, HEADER_ROW, and _transformed_data
@@ -76,5 +76,3 @@ for index, file in enumerate(os.listdir(path_dir)):
         writer.writerow(_FPS_ROW)
         writer.writerow(_HEADER_ROW)
         writer.writerows(_transformed_data)
-
-

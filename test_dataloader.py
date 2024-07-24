@@ -40,33 +40,38 @@ obs_item = ['battery']
 
 
 
-base_path = "/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/cleaned_traj/"
+base_path = "/home/cam/Documents/diffusion_policy_cam/no_sync/data_chisel_task/cleaned_test_traj/"
 
 # Load data
 dict_of_df_rigid = {}
 dict_of_df_marker = {}
 
 
+# for file in os.listdir(base_path):
+#     name.append(file)
 for file in os.listdir(base_path):
-    if file.endswith(".csv") and file.startswith("cap"):
+
+    if file.endswith(".csv"):
         path_name = base_path + file
         data = cfp.DataParser.from_quat_file(file_path = path_name, target_fps=target_fps, filter=True, window_size=15, polyorder=3)
-        # dict_of_df_rigid[file] = data.get_rigid_TxyzRxyz()
-        dict_of_df_marker[file] = data.get_marker_Txyz()
 
+        dict_of_df_marker[file] = data.get_marker_Txyz()
         data_time = data.get_time().astype(float)
         data_state_dict = data.get_rigid_TxyzRxyz()
 
         # use the time and state data to get the velocity data
         data_velocity_dict = {}
         for key in data_state_dict.keys():
-            data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
-            for i in range(1, len(data_time)):
-                data_velocity_dict[key][i] = (data_state_dict[key][i] - data_state_dict[key][i-1]) / (data_time[i] - data_time[i-1])
-                velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
-                filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
-                data_velocity_dict[key] = filtered_velocity.values
-                
+            if key != 'battery':
+                data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
+                for i in range(1, len(data_time)):
+                    data_velocity_dict[key][i] = (data_state_dict[key][i] - data_state_dict[key][i-1]) / (data_time[i] - data_time[i-1])
+                    velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
+                    filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
+                    data_velocity_dict[key] = filtered_velocity.values
+            else:
+                data_velocity_dict[key] = data_state_dict[key]
+
         dict_of_df_rigid[file] = data_velocity_dict
         
 item_name = data.rigid_bodies

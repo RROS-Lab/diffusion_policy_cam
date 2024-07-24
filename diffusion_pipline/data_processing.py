@@ -18,6 +18,7 @@ import re
 import random
 from typing import Union
 
+
 def generate_sequential_random_sequence(max_value):
     random_sequence = []
     current_value = 0

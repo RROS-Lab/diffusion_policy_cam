@@ -51,10 +51,10 @@ if __name__ == "__main__":
             data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
             for i in range(1, len(data_time)):
                 data_velocity_dict[key][i] = (data_state_dict[key][i] - data_state_dict[key][i-1]) / (data_time[i] - data_time[i-1])
-                velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
-                filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
-                data_velocity_dict[key] = filtered_velocity.values
-                print("Something is done")
+            velocity_data = pd.DataFrame(data_velocity_dict[key], columns = [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
+            filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
+            data_velocity_dict[key] = filtered_velocity.values
+            print("Something is done")
 
 
         #save the data_velocity_dict to csv
