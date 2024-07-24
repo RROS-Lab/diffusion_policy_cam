@@ -53,7 +53,7 @@ for file in os.listdir(path_dir):
             if key != 'battery':
                 data_velocity_dict[key] = np.zeros_like(data_state_dict[key])
                 for i in range(0, len(data_time) -1):
-                    data_velocity_dict[key][i] = (data_state_dict[key][i + 1] - data_state_dict[key][i]) / (data_time[i] - data_time[i-1])
+                    data_velocity_dict[key][i] = (data_state_dict[key][i + 1] - data_state_dict[key][i]) / (data_time[i + 1] - data_time[i])
                 velocity_data = pd.DataFrame(data_velocity_dict[key], columns= [f'{key}_X', f'{key}_Y', f'{key}_Z', f'{key}_x', f'{key}_y', f'{key}_z'])
                 filtered_velocity = _df.apply_savgol_filter(velocity_data, window_size = 15, polyorder = 3, time_frame= False)
                 data_velocity_dict[key] = filtered_velocity.values
