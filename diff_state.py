@@ -18,9 +18,8 @@ if __name__ == "__main__":
     import os
     import warnings
     warnings.filterwarnings("ignore")
-
     #write
-    
+
     
     
     # read_path = write_path # test read

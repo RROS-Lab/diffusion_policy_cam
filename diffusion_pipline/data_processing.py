@@ -108,7 +108,7 @@ def unnormalize_data(ndata, stats):
 
 
 class TaskStateDataset(torch.utils.data.Dataset):
-    def __init__(self, Rigiddataset: Union[list, np.array, None],
+    def __init__(self, Rigiddataset: Union[list, np.array, None], Velocitydataset: Union[list, np.array, None],
                   Markerdataset: Union[list, np.array, None], index,
                   action_item: Union[list, None], obs_item: Union[list, None], marker_item: Union[list, None],
                  pred_horizon, obs_horizon, action_horizon):
@@ -122,7 +122,11 @@ class TaskStateDataset(torch.utils.data.Dataset):
         marker_item = marker_item if marker_item is not None else []
 
         for i in range(index[-1]):
-            a = np.concatenate([Rigiddataset[item][i] for item in action_item]) if Rigiddataset is not None else np.array([])
+            if Velocitydataset is None:
+                a = np.concatenate([Rigiddataset[item][i] for item in action_item]) if Rigiddataset is not None else np.array([])
+
+            else :
+                a = np.concatenate([Velocitydataset[item][i] for item in action_item]) if Velocitydataset is not None else np.array([])
             
             b = np.concatenate(
                 ([Rigiddataset[item][i] for item in action_item] if Rigiddataset is not None else []) +
