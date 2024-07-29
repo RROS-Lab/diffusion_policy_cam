@@ -3,11 +3,12 @@ import regex as re
 import numpy as np
 import submodules.robomath_addon as rma
 import submodules.robomath as rm
+import submodules.data_filter as _df
 import os
 
 
 def compare_values(val1, val2, tol):
-    return all(np.abs(a - b) <= t for a, b, t in zip(val1, val2, tol))
+    return all((np.abs(a - b) <= t).all() for a, b, t in zip(val1, val2, tol))
 
 
 def find_similar_values_across_all(dicts, tolerance):
@@ -23,7 +24,6 @@ def find_similar_values_across_all(dicts, tolerance):
     return similar_keys
 
 
-
 def filter_MOIs(markers_dict: dict, MOIs: dict) -> dict:
     filtered_markers = {}
 
@@ -36,21 +36,11 @@ def filter_MOIs(markers_dict: dict, MOIs: dict) -> dict:
     return filtered_markers
 
 
-
-def _get_marker_wrt_item(marker: dict, item_type: str, item_name: str, item_pos: dict, ref_frame: int) -> dict:
+def _get_marker_wrt_item(marker: dict, item_XYZwxyz: list) -> dict:
     unlabel_vector = {}
 
-    for key, val in marker.items():
-        W_T_G = rma.TxyzQwxyz_2_Pose(item_pos[item_type][item_name].iloc[ref_frame].values)
-        W_R_G = W_T_G.rotationPose()
-        W_G = W_T_G.Pos()
-        
-        W_M = val.tolist()
-        W_V = rm.transl(W_M) - rm.transl(W_G)
-        W_V = W_V[:,3]
-        G_V = rm.invH(W_R_G) * W_V
-        unlabel_vector[key] = np.round(G_V.tolist()[:3], 2)
-        
+    for name, XYZ in marker.items():
+        unlabel_vector[name] = np.round(rma.Vxyz_wrt_TxyzQwxyz(XYZ, item_XYZwxyz), 2)
     return unlabel_vector
 
 
@@ -172,7 +162,8 @@ def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI
                                 for name in DOI_dict['mk'] 
                                 if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
             
-            markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, Body_type, Body_OI, DOI_dict, REF_FRAME)
+            item_pos = DOI_dict[Body_type][Body_OI].iloc[REF_FRAME].dropna().values
+            markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, item_pos)
             
             dicts.append(markers_vectors)
         else:
@@ -184,9 +175,6 @@ def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI
     
     return marker_limit
 
-def rename_columns_with_prefix(df, prefix):
-    return df.rename(columns=lambda x: f"{prefix}_{x}")
-
 
 def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
     '''
@@ -195,8 +183,8 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
     
     df = pd.concat(
         [DOI_dict["times"]] +
-        [rename_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
-        [rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"]],
+        [_df.rename_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
+        [_df.rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"]],
         axis=1
     )
     _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['RigidBody']['len'] + ["Marker"] * len(Marker_OI) * _params['Marker']['len'])
@@ -221,7 +209,6 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
 
     return df
 
-
 ########################################################################################
 ########################################################################################
 ########################################################################################
@@ -241,7 +228,7 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
     '''
     cross_ref_limit = 3
     Body_type = 'rb'
-    tolerance_sheet = [0.015, 0.015, 0.015]
+    tolerance_sheet = [0.02, 0.02, 0.02]
     tolerance_gripper = [0.005, 0.06, 0.005]
 
     _params = {
@@ -273,12 +260,25 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
                             for name in DOI_dict['mk'] 
                             if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
         
-        sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'battery', DOI_dict, REF_FRAME)
         
-        gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'gripper', DOI_dict, REF_FRAME)
+        battery_pos = DOI_dict['rb']['battery'].iloc[REF_FRAME].dropna().values
+        sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, battery_pos)
+        gripper_pos = DOI_dict['rb']['gripper'].iloc[REF_FRAME].dropna().values
+        gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, gripper_pos)
         
         # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
         filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
+        
+        if len(filter_labels) == len(Marker_OI):
+            print(f"File: {save_file} has all markers")
+        elif len(filter_labels) > len(Marker_OI):
+            print(f"File: {save_file} has extra markers")
+            print("Breaking......................")
+            break
+        else:
+            print(f"File: {save_file} has missing markers")
+            print("Breaking......................")
+            break
         
         # Create a set of keys to remove
         keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
@@ -293,7 +293,7 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
         for key in keys_to_remove:
             # print(f"Removing extra key: {key}")
             DOI_dict['mk'].pop(key)
-        
+        print("File path: ", save_file)
         _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
 
         _data.to_csv(f'{file_path}', index=False)

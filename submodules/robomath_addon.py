@@ -116,7 +116,7 @@ def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> rm.Mat:
     """
     Convert a point in the base frame to the tool frame.
     """
-    W_M = Txyz # vector in the base frame
+    W_M = list(Txyz) # vector in the base frame
     W_T_G = Pose # base to tool transformation matrix
 
     W_R_G = W_T_G.rotationPose()

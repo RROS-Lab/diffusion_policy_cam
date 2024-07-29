@@ -25,7 +25,7 @@ print("..........")
 #             csv_path = path, save_path=save_path
 #         )
 
-dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_data/'
-save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned/'
+dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/'
+save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned_old/'
 
 mfc.motive_chizel_task_cleaner(dir_path=dir_path, save_path=save_path)

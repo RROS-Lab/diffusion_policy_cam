@@ -175,6 +175,8 @@ def velocity_to_state(data_state_dict: dict[str :np.array], data_time: np.array,
 
     return data_velocity_dict
 
+def rename_columns_with_prefix(df, prefix):
+    return df.rename(columns=lambda x: f"{prefix}_{x}")
 
 
 def trim_lists_in_dicts(dicts):
