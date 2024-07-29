@@ -5,7 +5,7 @@ import submodules.cleaned_file_parser as cfp
 import submodules.data_filter as _df
 import os
 
-path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/try_test/new_clean.csv'
+path = '/home/cam/Documents/diffusion_policy_cam/no_sync/data_chisel_task/1-cleaned_data/cleaned_training_traj/cap_008_cleaned.csv'
 
 data = cfp.DataParser.from_euler_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
 

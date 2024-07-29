@@ -6,32 +6,241 @@ import submodules.robomath as rm
 import os
 
 
-def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
+def compare_values(val1, val2, tol):
+    return all(np.abs(a - b) <= t for a, b, t in zip(val1, val2, tol))
+
+
+def find_similar_values_across_all(dicts, tolerance):
+    similar_keys = {}
+
+    for key1, val1 in dicts[0].items():
+        for key2, val2 in dicts[1].items():
+            if compare_values(val1, val2, tolerance):
+                for key3, val3 in dicts[2].items():
+                    if compare_values(val1, val3, tolerance):
+                        similar_keys[tuple(val1)] = (key1, key2, key3)
+    
+    return similar_keys
+
+
+def filter_W_MOIs(markers_dict: dict, W_MOIs: dict) -> dict:
+    filtered_markers = {}
+
+    for name, pos in zip(W_MOIs["names"], W_MOIs["pos"]):
+        tolerance = W_MOIs["tolerance"]
+        for marker_name, marker_pos in markers_dict.items():
+            if _is_mk_within_box(marker_pos, pos, tolerance):
+                filtered_markers[name] = marker_name
+                
+    return filtered_markers
+
+
+def _get_marker_wrt_item(marker: dict, item_type: str, item_name: str, item_pos: dict, ref_frame: int) -> dict:
+    unlabel_vector = {}
+
+    for key, val in marker.items():
+        W_T_G = rma.TxyzQwxyz_2_Pose(item_pos[item_type][item_name].iloc[ref_frame].values)
+        W_R_G = W_T_G.rotationPose()
+        W_G = W_T_G.Pos()
+        
+        W_M = val.tolist()
+        W_V = rm.transl(W_M) - rm.transl(W_G)
+        W_V = W_V[:,3]
+        G_V = rm.invH(W_R_G) * W_V
+        unlabel_vector[key] = np.round(G_V.tolist()[:3], 2)
+        
+    return unlabel_vector
+
+
+def _get_data_dictionary(csv_path: str, RigidBody_OI: list) -> dict:
+
+    data, FPS = _pre_process(csv_path)
+
+    row1_Name = data.iloc[0,:].values # Name of Object of Interest
+    row2_Rot_Pos = data.iloc[1,:].values # Rotation or Position
+    row3_TxyzQwxyz = data.iloc[2].values # X/Y/Z/w/x/y/z
+
+    items_dict = _get_items_of_interest(row1_Name, row2_Rot_Pos, row3_TxyzQwxyz, RigidBody_OI)
+    data = data.drop([0,1,2]).reset_index(drop=True)
+    DOI_dict = _get_data_of_interest(data, items_dict)
+
+    # Collect all invalid row indices
+    invalid_rows = set()
+    for _rb_name in DOI_dict['rb']:
+        invalid_rows.update(_get_invalid_rows(DOI_dict['rb'][_rb_name]))
+        
+        
+    # Drop invalid rows from all DataFrames
+    for key in DOI_dict['rb']:
+        DOI_dict['rb'][key] = DOI_dict['rb'][key].drop(invalid_rows).reset_index(drop=True)
+
+    for key in DOI_dict['mk']:
+        DOI_dict['mk'][key] = DOI_dict['mk'][key].drop(invalid_rows).reset_index(drop=True)
+
+    DOI_dict['times'] = DOI_dict['times'].drop(invalid_rows).reset_index(drop=True)
+    
+    return DOI_dict, FPS
+
+
+def _pre_process(csv_path:str) -> tuple[pd.DataFrame, str]:
+    _data = pd.read_csv(csv_path)
+    FPS = _data.columns[7]
+    _data = _data.reset_index(drop=False)
+    indices_drop = [0, 2]
+    _data = _data.drop(indices_drop).reset_index(drop=True)
+    return _data, FPS 
+
+
+def _get_items_of_interest(Names:np.ndarray, Rot_Pos:np.ndarray, TxyzQwxyz:np.ndarray, RigidBody_OI: list) -> dict:
+    _clms = {"rb": {}, "mk": {}, "times":1} # {"rb": {"name": {"X":,... "w":,..}}, "mk": {"name": {"X":, "Y":, "Z": }}}
+
+    for index, (name , rot_or_pos, XYZwzyz) in enumerate(zip(Names, Rot_Pos, TxyzQwxyz)):
+        name = str(name); rot_or_pos = str(rot_or_pos)
+        # get all rigid body data if name starts with RigidBody_OI and not a marker
+        _type = None
+        if name.startswith('Unlabeled'): 
+            _type = 'mk'
+        if any(name.startswith(rb) for rb in RigidBody_OI) and 'Marker' not in name:
+            _type = 'rb'
+        if _type is None:
+            continue
+        
+        if _clms[_type].get(name) is None:
+            _clms[_type][name] = {}
+        if _type == 'rb' and rot_or_pos == 'Rotation':
+            XYZwzyz = XYZwzyz.lower()
+            
+        _clms[_type][name][XYZwzyz] = index
+    return _clms
+
+
+def _get_data_of_interest(_data: pd.DataFrame, _clms: dict) -> dict:
+    _DOI = {"rb": {}, "mk": {}, "times": None}
+
+    rb_order = ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']
+    mk_order = ['X', 'Y', 'Z']
+    
+    times_data = _data.iloc[:, _clms["times"]].to_frame()
+    times_data.columns = ['Time']
+    _DOI["times"] = times_data
+    
+    # Process rigid bodies
+    for rb_name, indices in _clms["rb"].items():
+        sorted_indices = [indices[key] for key in rb_order]
+        rb_data = _data.iloc[:, sorted_indices]
+        #convert rb_data to float
+        rb_data = rb_data.astype(float)
+        rb_data.columns = [key for key in rb_order]
+        _DOI["rb"][rb_name.split('_')[0]] = rb_data
+    
+    # Process markers
+    for mk_name, indices in _clms["mk"].items():
+        sorted_indices = [indices[key] for key in mk_order]
+        mk_data = _data.iloc[:, sorted_indices]
+        #convert mk_data to float
+        mk_data = mk_data.astype(float)
+        mk_data.columns = [key for key in mk_order]
+        _DOI["mk"][mk_name] = mk_data
+
+    return _DOI
+
+def _get_invalid_rows(data_frame: pd.DataFrame) -> pd.Index:
+    """
+    Identifies rows with NaN, Inf, or empty values in the DataFrame.
+    """
+    invalid_rows = data_frame.isnull().any(axis=1) | data_frame.isin([np.inf, -np.inf]).any(axis=1) | data_frame.isin([""]).any(axis=1)
+    return data_frame[invalid_rows].index
+
+def _is_mk_within_box(marker: tuple[3], center: tuple[3], tolerance: tuple[3]) -> bool:
+    '''This function is used to check if the marker is within the box'''
+    return all(abs(marker[i] - center[i]) <= tolerance[i] for i in range(3))
+
+def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, tolerance: list, marker_label: list, cross_ref_limit: int) -> dict:
     '''
-    csv_path: str
-        path to the csv file
+    This function is used to get the marker limit for the chisel task
+    '''
+    dicts = []
+    for index, file in enumerate(os.listdir(dir_path)):
+        if file.endswith('.csv') and index < cross_ref_limit:
+            csv_path = os.path.join(dir_path, file)
+
+            DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI)
+
+            mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
+                                for name in DOI_dict['mk'] 
+                                if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
+            
+            markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, Body_type, Body_OI, DOI_dict, REF_FRAME)
+            
+            dicts.append(markers_vectors)
+        else:
+            break
+    
+    similar_keys = find_similar_values_across_all(dicts, tolerance)
+    
+    marker_limit = {"names": marker_label, "pos": [key for key in similar_keys.keys()], "tolerance": tolerance}
+    
+    return marker_limit
+
+def rename_columns_with_prefix(df, prefix):
+    return df.rename(columns=lambda x: f"{prefix}_{x}")
+
+
+def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
+    '''
+    This function is used to get the cleaned dataframe
+    Changing to robodk frame First time for the rigid body and markers'''
+    
+    df = pd.concat(
+        [DOI_dict["times"]] +
+        [rename_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
+        [rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"]],
+        axis=1
+    )
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['RigidBody']['len'] + ["Marker"] * len(Marker_OI) * _params['Marker']['len'])
+    _HEADER_ROW = df.columns
+    add_row = pd.DataFrame([pd.Series(["FPS", FPS] + [0] * (len(df.columns) - 2), index=df.columns, dtype=str)], columns=df.columns)
+
+    ######## ADDING THE ITEM ROW TO THE DATAFRAME ########
+    item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=df.columns)
+    combined_set = RigidBody_OI + Marker_OI
+
+    for rb in combined_set:
+        rb_columns = [col for col in df.columns if col.startswith(rb)]
+        if len(rb_columns) == 3:
+            df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, df[rb_columns].values.astype(float))
+        else:
+            df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, df[rb_columns].values.astype(float))
+            
+    df = pd.concat([df.iloc[:0], add_row, item_row, df.iloc[0:]], ignore_index=True) ## add_row is the FPS row and item_row is the header row
+    df = df.dropna()
+    df = df.reset_index(drop=True)
+    df.columns = _SUP_HEADER_ROW
+
+    return df
+
+
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+####### MAIN FUNCTION BELLOW ##########################################################
+
+def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
+    '''
+    dir_path: str
+        path to the csv files
     save_path: str
         path to save the cleaned csv file
 
     create a new csv file with the cleaned data in robodk frame
 
     '''
-    dict_of_lists = {}
-    #Hardcoded values for the common values of the markers and the battery
-    common_values = {
-        'A1': (-0.16, -0.08),
-        'A2': (-0.16, 0.0),
-        'A3': (-0.16, 0.08),
-        'B1': (-0.0, -0.08),
-        'B2': (-0.0, 0.0),
-        'B3': (-0.0, 0.08),
-        'C1': (0.15, -0.08),
-        'C2': (0.15, 0.0),
-        'C3': (0.15, 0.07)}
-    
-    RigidBody = { 'battery', 'chisel', 'gripper'}
-    Marker = { 'A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'}
-    combined_set = RigidBody.union(Marker)
+    cross_ref_limit = 3
+    Body_type = 'rb'
+    tolerance_sheet = [0.015, 0.015, 0.015]
+    tolerance_gripper = [0.005, 0.06, 0.005]
 
     _params = {
         'RigidBody': {'len':7,
@@ -41,145 +250,48 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     }
 
 
-    name = csv_path.split('/')[-1]
-    file = re.sub(r'\.csv', '_cleaned.csv', name)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    file_path = os.path.join(save_path, file)
+    Marker_OI = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3']
+    gripper_marker_name = ['GS']
+    RigidBody_OI = ['battery', 'chisel', 'gripper']
+    REF_FRAME = 100
 
-    _data = pd.read_csv(csv_path)
-    name , rate = _data.columns[6], _data.columns[7]
-    _data = _data.reset_index(drop=False)
-    indices_drop = [0, 2]
-    _data = _data.drop(indices_drop)
-    _data = _data.reset_index(drop=True)
-
-    row1 = _data.iloc[0]
-    row2 = _data.iloc[1]
-    row3 = _data.iloc[2]
+    B_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
+    G_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
 
 
-    '''Establishing the common values for the markers and the battery
-    and creating a dictionary of the values for the markers and the battery'''
-    
-    colums_val = []
-    frame_to_use = 150
-    for index, (val , val1) in enumerate(zip(row1, row2)):
-        if str(val).startswith('Unlabeled'):
-            colums_val.append(index)
-        if str(val).startswith('RigidBody') and 'Marker'  not in str(val) and 'Rotation' not in str(val1):
-            colums_val.append(index)
-            
-    unlabled_data = _data.iloc[:,colums_val]
-    for idx in range(0, len(unlabled_data.columns), 3):
-        col_name = unlabled_data.iloc[0, idx]
-        if col_name.startswith('RigidBody'):
-            battery_coo = [float(unlabled_data.iloc[frame_to_use, idx]), float(unlabled_data.iloc[frame_to_use, idx + 1]), float(unlabled_data.iloc[frame_to_use, idx + 2])]
-        if col_name.startswith('Unlabeled'):
-            dict_of_lists[col_name]  = [float(unlabled_data.iloc[frame_to_use, idx]), float(unlabled_data.iloc[frame_to_use, idx + 1]), float(unlabled_data.iloc[frame_to_use, idx + 2])]
+    for file in os.listdir(dir_path):
 
+        csv_path = os.path.join(dir_path, file)
+        save_file = re.sub(r'\.csv', '_cleaned.csv', file)
+        file_path = os.path.join(save_path, save_file)
 
-    ### Filtering the dictionary to remove nan values (only used to filter out usledd unlabbled markers)       
-    filtered_dict = {key: [value for value in values if np.isfinite(value)] for key, values in dict_of_lists.items() if any(np.isfinite(value) for value in values)}
+        DOI_dict, FPS = _get_data_dictionary(csv_path, RigidBody_OI)
 
-    matching_keys = {}
-    #### calcualtion of the matching keys for the common values of the markers and the battery
-    for key in filtered_dict.keys():
-        vector_ab = np.round(np.array(battery_coo), 2) - np.round(filtered_dict[key], 2)
-        for common_key, common_value in common_values.items():
-            if (np.round(vector_ab[0], 2), np.round(vector_ab[2], 2)) == common_value:
-                matching_keys[common_key] = key
-                break
+        mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
+                            for name in DOI_dict['mk'] 
+                            if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
+        
+        sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'battery', DOI_dict, REF_FRAME)
+        
+        gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'gripper', DOI_dict, REF_FRAME)
+        
+        # filter_labels = filter_W_MOIs(sheet_markers_vectors, B_MOIs) | filter_W_MOIs(gripper_marker_vectors, G_MOIs)
+        filter_labels = filter_W_MOIs(sheet_markers_vectors, B_MOIs)
+        
+        # Create a set of keys to remove
+        keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
 
+        # Update the dictionary with new keys and remove extra keys in one go
+        for new_key, old_key in filter_labels.items():
+            if old_key in DOI_dict['mk']:
+                # print(f"Old key: {old_key}, New key: {new_key}")
+                DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
 
-    '''Removing useless columns , Adding time colums, rigid body collums and marker columns'''
-    combined_values = []
-    columns_to_drop = [] 
-    for index, (a, b, c) in enumerate(zip(row1, row2, row3)):
-        key_match = next((key for key, value in matching_keys.items() if value == str(a)), None)
-        if str(b) + '_' + str(c) in ('Rotation_X', 'Rotation_Y', 'Rotation_Z', 'Rotation_W'):
-            if key_match:
-                combined_values.append(f"{key_match}_{c}")
-            elif 'Marker' in str(a):
-                columns_to_drop.append(index)
-            elif 'RigidBody' in str(a):
-                combined_values.append(f"battery_{c.lower()}")
-            else:
-                combined_values.append(f"{str(a).split('_')[0]}_{c.lower()}")
-        else:
-            if key_match:
-                combined_values.append(f"{key_match}_{c}")
-            elif 'Marker' in str(a) or 'Active' in str(a):
-                columns_to_drop.append(index)
-            elif 'RigidBody' in str(a):
-                combined_values.append(f"battery_{c}")
-            elif str(a).startswith('Unlabeled'):
-                columns_to_drop.append(index)
-            else:
-                combined_values.append('Time' if 'Time' in str(c) else f"{str(a).split('_')[0]}_{c}")
+        # Remove the extra keys
+        for key in keys_to_remove:
+            # print(f"Removing extra key: {key}")
+            DOI_dict['mk'].pop(key)
+        
+        _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
 
-
-    ################ After the execution of the above  block get the list of colums to drop and the name of the remaing colums to name them properly
-                
-    columns_to_drop.append(0)
-    _data = _data.drop(_data.columns[columns_to_drop], axis=1)
-    _data.columns = combined_values[1:]
-    _data = _data.drop([0, 1, 2, 3])
-    # _data = _data.dropna()
-    _data = _data.reset_index(drop=True)
-
-
-    # Filter columns
-    filtered_columns = [col for col in _data.columns if any(keyword in col for keyword in RigidBody)]
-    # Create new DataFrame with filtered columns
-    rigid_data = _data[filtered_columns]
-    # Step 1: Identify rows with NaN values
-    nan_rows = rigid_data.isna().any(axis=1)
-    # Step 2: Get indexes of rows with NaN values
-    indexes_with_nan = nan_rows[nan_rows].index.to_list()
-    _data = _data.drop(indexes_with_nan)
-    _data = _data.reset_index(drop=True)
-    _data = _data.apply(pd.to_numeric, errors='coerce')
-    _data = _data.interpolate(method='linear', limit_direction='both')
-
-
-    #########################################################################
-
-    '''Changing to robodk frame First time for the rigid body and markers'''
-    '''Addding frame information, time information and sorting according to X,Y,Z,w,x,y,z with respect to robodk frame'''
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody) * _params['RigidBody']['len'] + ["Marker"] * len(Marker) * _params['Marker']['len'])
-    _rb_col_names = [f"{rb}_{axis}" for rb in RigidBody for axis in _params['RigidBody']['dof']]
-    _mk_col_names = [f"{mk}_{axis}" for mk in Marker for axis in _params['Marker']['dof']]
-    _HEADER_ROW = ['Time'] +_rb_col_names + _mk_col_names
-    _data = _data.reindex(columns=_HEADER_ROW)
-    state_dict = {_rb: _params['RigidBody']['len'] * i + 1 for i, _rb in enumerate(RigidBody, start=1)}
-    add_row = pd.DataFrame([pd.Series([name, rate] + [np.nan] * (len(_data.columns) - 2), index=_data.columns, dtype=str)], columns=_data.columns)
-
-
-    ######## ADDING THE ITEM ROW TO THE DATAFRAME ########
-    item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=_data.columns)
-    
-
-
-    ############ CAhanging to robodk frame for the rigid body and markers
-    for rb in combined_set:
-        rb_columns = [col for col in _data.columns if col.startswith(rb)]
-        sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
-        if len(rb_columns) == 3:
-            _data[sorted_columns] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, _data[sorted_columns].values.astype(float))
-        else:
-            _data[sorted_columns] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, _data[sorted_columns].values.astype(float))
-
-    _data = pd.concat([_data.iloc[:0], add_row, item_row, _data.iloc[0:]], ignore_index=True)
-    _data = _data.reset_index(drop=True)
-    _data.columns = _SUP_HEADER_ROW
-
-
-    offset = 0
-    ######## ADDING THE STATE INFORMATION TO THE DATAFRAME ########
-    for key , vals in state_dict.items():
-        add_col = pd.DataFrame(np.reshape(([np.nan] + [key + '_state'] + [-1] * (len(_data) - 2)), (-1, 1)), columns=['RigidBody'])
-        _data.insert(loc=vals + offset ,column = 'RigidBody', value=add_col, allow_duplicates=True)
-        offset += 1
-
-    _data.to_csv(f'{file_path}', index=False)
+        _data.to_csv(f'{file_path}', index=False)

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import submodules.robomath as rm
 import submodules.robomath_addon as rma
-import submodules.motive_file_cleaner as mfc
+import submodules.raj_cleaner as mfc
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -25,7 +25,7 @@ print("..........")
 #             csv_path = path, save_path=save_path
 #         )
 
-path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/test_128_raw.csv'
-save_path = '/home/cam/Documents/diffusion_policy_cam/diffusion_pipline/data_chisel_task/'
+dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_data/'
+save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned/'
 
-mfc.motive_chizel_task_cleaner(csv_path=path, save_path=save_path)
+mfc.motive_chizel_task_cleaner(dir_path=dir_path, save_path=save_path)
