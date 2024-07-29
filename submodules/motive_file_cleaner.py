@@ -28,16 +28,65 @@ G_MOIs = {"names": ['GS'],
 
 RigidBody_OI = { 'RigidBody', 'chisel', 'gripper'} # RIGID BODY OF INTEREST #oldname: RigidBody
 
-def filter_W_MOIs(markers_dict: dict, W_MOIs: dict) -> dict:
+
+def filter_MOIs(markers_dict: dict, MOIs: dict) -> dict:
     filtered_markers = {}
 
-    for name, pos in zip(W_MOIs["names"], W_MOIs["pos"]):
-        tolerance = W_MOIs["tolerance"]
+    for name, pos in zip(MOIs["names"], MOIs["pos"]):
+        tolerance = MOIs["tolerance"]
         for marker_name, marker_pos in markers_dict.items():
             if _is_mk_within_box(marker_pos, pos, tolerance):
                 filtered_markers[name] = marker_pos
                 
     return filtered_markers
+
+
+
+def _get_marker_wrt_item(marker: dict, item_type: str, item_name: str, item_pos: dict, ref_frame: int) -> dict:
+    unlabel_vector = {}
+
+    for key, val in marker.items():
+        W_T_G = rma.TxyzQwxyz_2_Pose(item_pos[item_type][item_name].iloc[ref_frame].values)
+        W_R_G = W_T_G.rotationPose()
+        W_G = W_T_G.Pos()
+        
+        W_M = val.tolist()
+        W_V = rm.transl(W_M) - rm.transl(W_G)
+        W_V = W_V[:,3]
+        G_V = rm.invH(W_R_G) * W_V
+        unlabel_vector[key] = np.round(G_V.tolist()[:3], 2)
+        
+    return unlabel_vector
+
+
+def _get_data_dictionary(csv_path: str, RigidBody_OI: list) -> dict:
+
+    data, FPS = _pre_process(csv_path)
+
+    row1_Name = data.iloc[0,:].values # Name of Object of Interest
+    row2_Rot_Pos = data.iloc[1,:].values # Rotation or Position
+    row3_TxyzQwxyz = data.iloc[2].values # X/Y/Z/w/x/y/z
+
+    items_dict = _get_items_of_interest(row1_Name, row2_Rot_Pos, row3_TxyzQwxyz, RigidBody_OI)
+    data = data.drop([0,1,2]).reset_index(drop=True)
+    DOI_dict = _get_data_of_interest(data, items_dict)
+
+    # Collect all invalid row indices
+    invalid_rows = set()
+    for _rb_name in DOI_dict['rb']:
+        invalid_rows.update(_get_invalid_rows(DOI_dict['rb'][_rb_name]))
+        
+        
+    # Drop invalid rows from all DataFrames
+    for key in DOI_dict['rb']:
+        DOI_dict['rb'][key] = DOI_dict['rb'][key].drop(invalid_rows).reset_index(drop=True)
+
+    for key in DOI_dict['mk']:
+        DOI_dict['mk'][key] = DOI_dict['mk'][key].drop(invalid_rows).reset_index(drop=True)
+
+    DOI_dict['times'] = DOI_dict['times'].drop(invalid_rows).reset_index(drop=True)
+    
+    return DOI_dict, FPS
 
 
 def _pre_process(csv_path:str) -> tuple[pd.DataFrame, str]:
@@ -228,5 +277,51 @@ def main(csv_path:str, save_path:str) -> None:
 
 
 if __name__ == '__main__':
-    main('diffusion_pipline/data_chisel_task/test_128_raw.csv', 
-         'cleaned_data.csv')
+    # main('diffusion_pipline/data_chisel_task/test_128_raw.csv', 
+    #      'cleaned_data.csv')
+    
+    Marker_OI = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3']
+    gripper_marker_name = ['GS']
+    RigidBody_OI = ['battery', 'chisel', 'gripper']
+    REF_FRAME = 100
+
+    B_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
+    G_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
+
+
+    for file in os.listdir(dir_path):
+
+        csv_path = os.path.join(dir_path, file)
+        save_file = re.sub(r'\.csv', '_cleaned.csv', file)
+        file_path = os.path.join(save_path, save_file)
+
+        DOI_dict, FPS = _get_data_dictionary(csv_path, RigidBody_OI)
+
+        mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
+                            for name in DOI_dict['mk'] 
+                            if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
+        
+        sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'battery', DOI_dict, REF_FRAME)
+        
+        gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'gripper', DOI_dict, REF_FRAME)
+        
+        # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
+        filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
+        
+        # Create a set of keys to remove
+        keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
+
+        # Update the dictionary with new keys and remove extra keys in one go
+        for new_key, old_key in filter_labels.items():
+            if old_key in DOI_dict['mk']:
+                # print(f"Old key: {old_key}, New key: {new_key}")
+                DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+
+        # Remove the extra keys
+        for key in keys_to_remove:
+            # print(f"Removing extra key: {key}")
+            DOI_dict['mk'].pop(key)
+        
+        _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
+
+        _data.to_csv(f'{file_path}', index=False)
