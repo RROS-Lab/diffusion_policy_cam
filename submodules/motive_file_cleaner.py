@@ -23,16 +23,18 @@ def find_similar_values_across_all(dicts, tolerance):
     return similar_keys
 
 
-def filter_W_MOIs(markers_dict: dict, W_MOIs: dict) -> dict:
+
+def filter_MOIs(markers_dict: dict, MOIs: dict) -> dict:
     filtered_markers = {}
 
-    for name, pos in zip(W_MOIs["names"], W_MOIs["pos"]):
-        tolerance = W_MOIs["tolerance"]
+    for name, pos in zip(MOIs["names"], MOIs["pos"]):
+        tolerance = MOIs["tolerance"]
         for marker_name, marker_pos in markers_dict.items():
             if _is_mk_within_box(marker_pos, pos, tolerance):
                 filtered_markers[name] = marker_name
                 
     return filtered_markers
+
 
 
 def _get_marker_wrt_item(marker: dict, item_type: str, item_name: str, item_pos: dict, ref_frame: int) -> dict:
@@ -275,8 +277,8 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
         
         gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, 'rb', 'gripper', DOI_dict, REF_FRAME)
         
-        # filter_labels = filter_W_MOIs(sheet_markers_vectors, B_MOIs) | filter_W_MOIs(gripper_marker_vectors, G_MOIs)
-        filter_labels = filter_W_MOIs(sheet_markers_vectors, B_MOIs)
+        # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
+        filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
         
         # Create a set of keys to remove
         keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())

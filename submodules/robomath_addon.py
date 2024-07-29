@@ -112,5 +112,27 @@ def robodk_2_motive(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
 
     return [Z, X, Y, w, z, x, y]
 
+def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> rm.Mat:
+    """
+    Convert a point in the base frame to the tool frame.
+    """
+    W_M = Txyz # vector in the base frame
+    W_T_G = Pose # base to tool transformation matrix
 
+    W_R_G = W_T_G.rotationPose()
+    W_G = W_T_G.Pos()
+    
+    W_V = rm.transl(W_M) - rm.transl(W_G)
+    W_V = W_V[:,3]
+    G_V = rm.invH(W_R_G) * W_V
+    G_V = G_V.tolist()[:3]
+    return G_V 
+
+
+def Vxyz_wrt_TxyzQwxyz(Txyz: Union[list, np.ndarray], TxyzQwxyz: Union[list, np.ndarray]) -> np.ndarray:
+    """
+    Convert a point in the base frame to the tool frame.
+    """
+    _Pose = TxyzQwxyz_2_Pose(TxyzQwxyz) # base to tool transformation matrix
+    return Vxyz_wrt_Pose(Txyz, _Pose)
 
