@@ -3,6 +3,8 @@ import numpy as np
 import re
 from scipy.signal import savgol_filter
 from typing import Union
+import submodules.data_filter as cfp
+import submodules.robomath_addon as rma
 
 def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float) ->pd.DataFrame:
     """
@@ -194,3 +196,27 @@ def trim_lists_in_dicts(dicts):
         trimmed_dicts.append(trimmed_dict)
     
     return trimmed_dicts
+
+
+def stop_rotation_index(path, target_fps):
+    
+    data = cfp.DataParser.from_quat_file(file_path = path, target_fps= target_fps, filter=False, window_size=5, polyorder=3)
+    _times = data.get_time()
+    battery = data.get_rigid_TxyzRxyz()['battery']
+    W_T_bat = battery
+
+    W_T_bat0 = battery[0]
+    bat0_T_bat = np.apply_along_axis(rma.BxyzRxyz_wrt_AxyzRxyz, 1, W_T_bat, W_T_bat0)
+    yaw = bat0_T_bat[:,5]
+    yaw = savgol_filter(yaw, 100, 3)
+
+    yaw = np.rad2deg(yaw)
+    yaw_dot = rma.first_derivative(yaw, _times)
+
+
+    # Find the end of rotation
+    thresehold = 1
+    final_yaw = yaw[-1]
+    stop_index = np.argmax(np.abs(yaw_dot[::-1]) > thresehold)
+    
+    return stop_index, final_yaw

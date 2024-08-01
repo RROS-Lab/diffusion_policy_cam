@@ -40,7 +40,9 @@ def _get_marker_wrt_item(marker: dict, item_XYZwxyz: list) -> dict:
     unlabel_vector = {}
 
     for name, XYZ in marker.items():
-        unlabel_vector[name] = np.round(rma.Vxyz_wrt_TxyzQwxyz(XYZ, item_XYZwxyz), 2)
+        # unlabel_vector[name] = np.round(rma.Vxyz_wrt_TxyzQwxyz(XYZ, item_XYZwxyz), 2)
+        unlabel_vector[name] = rma.Vxyz_wrt_TxyzQwxyz(XYZ, item_XYZwxyz)
+        
     return unlabel_vector
 
 
@@ -216,7 +218,7 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
 ########################################################################################
 ####### MAIN FUNCTION BELLOW ##########################################################
 
-def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
+def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     '''
     dir_path: str
         path to the csv files
@@ -226,6 +228,55 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
     create a new csv file with the cleaned data in robodk frame
 
     '''
+    save_file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
+    file_path = os.path.join(save_path, save_file)
+
+    DOI_dict, FPS = _get_data_dictionary(csv_path, RigidBody_OI)
+
+    mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
+                        for name in DOI_dict['mk'] 
+                        if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
+    
+    battery_pos = DOI_dict['rb']['battery'].iloc[REF_FRAME].dropna().values
+    sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, battery_pos)
+    gripper_pos = DOI_dict['rb']['gripper'].iloc[REF_FRAME].dropna().values
+    gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, gripper_pos)
+    
+    # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
+    filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
+    
+    if len(filter_labels) == len(Marker_OI):
+        print(f"File: {save_file} has all markers")
+    elif len(filter_labels) > len(Marker_OI):
+        print(f"File: {save_file} has extra markers")
+        print("Stopping execution......................")
+        return  # Exit the function
+    else:
+        print(f"File: {save_file} has missing markers")
+        print("Stopping execution......................")
+        return  # Exit the function
+    
+    # Create a set of keys to remove
+    keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
+
+    # Update the dictionary with new keys and remove extra keys in one go
+    for new_key, old_key in filter_labels.items():
+        if old_key in DOI_dict['mk']:
+            # print(f"Old key: {old_key}, New key: {new_key}")
+            DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+
+    # Remove the extra keys
+    for key in keys_to_remove:
+        # print(f"Removing extra key: {key}")
+        DOI_dict['mk'].pop(key)
+    print("File path: ", save_file)
+    _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
+
+    _data.to_csv(f'{file_path}', index=False)
+        
+
+if __name__ == "__main__":
+
     cross_ref_limit = 3
     Body_type = 'rb'
     tolerance_sheet = [0.02, 0.02, 0.02]
@@ -239,61 +290,16 @@ def motive_chizel_task_cleaner(dir_path:str, save_path:str) -> None:
     }
 
 
-    Marker_OI = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3']
+    Marker_OI = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'D1', 'D2', 'D3', 'D4', 'D5', 'E1', 'E2', 'E3', 'E4', 'E5']
     gripper_marker_name = ['GS']
     RigidBody_OI = ['battery', 'chisel', 'gripper']
     REF_FRAME = 100
 
+
+    dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/'
+    save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned_old/'
+
     B_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
     G_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
 
-
-    for file in os.listdir(dir_path):
-
-        csv_path = os.path.join(dir_path, file)
-        save_file = re.sub(r'\.csv', '_cleaned.csv', file)
-        file_path = os.path.join(save_path, save_file)
-
-        DOI_dict, FPS = _get_data_dictionary(csv_path, RigidBody_OI)
-
-        mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
-                            for name in DOI_dict['mk'] 
-                            if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
-        
-        
-        battery_pos = DOI_dict['rb']['battery'].iloc[REF_FRAME].dropna().values
-        sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, battery_pos)
-        gripper_pos = DOI_dict['rb']['gripper'].iloc[REF_FRAME].dropna().values
-        gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, gripper_pos)
-        
-        # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
-        filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
-        
-        if len(filter_labels) == len(Marker_OI):
-            print(f"File: {save_file} has all markers")
-        elif len(filter_labels) > len(Marker_OI):
-            print(f"File: {save_file} has extra markers")
-            print("Breaking......................")
-            break
-        else:
-            print(f"File: {save_file} has missing markers")
-            print("Breaking......................")
-            break
-        
-        # Create a set of keys to remove
-        keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
-
-        # Update the dictionary with new keys and remove extra keys in one go
-        for new_key, old_key in filter_labels.items():
-            if old_key in DOI_dict['mk']:
-                # print(f"Old key: {old_key}, New key: {new_key}")
-                DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
-
-        # Remove the extra keys
-        for key in keys_to_remove:
-            # print(f"Removing extra key: {key}")
-            DOI_dict['mk'].pop(key)
-        print("File path: ", save_file)
-        _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
-
-        _data.to_csv(f'{file_path}', index=False)
+    

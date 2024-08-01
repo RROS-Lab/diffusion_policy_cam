@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 import submodules.robomath_addon as rma
 
 
-path = 'no-sync/datasets/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/cap_002_cleaned.csv'
+path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/cap_002_cleaned.csv'
 
 data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
 
