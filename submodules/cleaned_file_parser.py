@@ -168,9 +168,8 @@ class DataParser:
         - np.ndarray: Array containing time data.
         """
         time = {}  # Dictionary to store processed data
-        
         time = self.data['Time'].values
-        
+        time = time.astype(float)
         return time
 
     def save_2_csv(self, file_path, save_type='QUAT'):

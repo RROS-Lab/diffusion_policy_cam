@@ -136,3 +136,26 @@ def Vxyz_wrt_TxyzQwxyz(Txyz: Union[list, np.ndarray], TxyzQwxyz: Union[list, np.
     _Pose = TxyzQwxyz_2_Pose(TxyzQwxyz) # base to tool transformation matrix
     return Vxyz_wrt_Pose(Txyz, _Pose)
 
+def BxyzQwxyz_wrt_AxyzQwxyz(AxyzQwxyz: Union[list, np.ndarray], BxyzQwxyz: Union[list, np.ndarray]) -> np.ndarray:
+    """
+    Convert from base frame to the tool frame.
+    """
+    W_T_A = TxyzQwxyz_2_Pose(AxyzQwxyz) # base to tool transformation matrix
+    W_T_B = TxyzQwxyz_2_Pose(BxyzQwxyz) # base to tool transformation matrix
+    A_T_B = rm.invH(W_T_A) * W_T_B
+    return Pose_2_TxyzQwxyz(A_T_B)
+
+def BxyzRxyz_wrt_AxyzRxyz(AxyzRxyz: Union[list, np.ndarray], BxyzRxyz: Union[list, np.ndarray]) -> np.ndarray:
+    """
+    Convert a point in the base frame to the tool frame.
+    """
+    W_T_A = rm.TxyzRxyz_2_Pose(AxyzRxyz) # base to tool transformation matrix
+    W_T_B = rm.TxyzRxyz_2_Pose(BxyzRxyz) # base to tool transformation matrix
+    A_T_B = rm.invH(W_T_A) * W_T_B
+    return rm.Pose_2_TxyzRxyz(A_T_B)
+
+def first_derivative(data: np.ndarray, times: np.ndarray) -> np.ndarray:
+    """
+    Compute the first derivative of the data.
+    """
+    return np.gradient(data, times, edge_order=2)
