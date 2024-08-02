@@ -218,7 +218,7 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
 ########################################################################################
 ####### MAIN FUNCTION BELLOW ##########################################################
 
-def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
+def motive_chizel_task_cleaner(csv_path:str, save_path:str, RigidBody_OI: list, Marker_OI: list, _params: dict, REF_FRAME: int, B_MOIs: dict) -> None:
     '''
     dir_path: str
         path to the csv files
@@ -275,31 +275,31 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str) -> None:
     _data.to_csv(f'{file_path}', index=False)
         
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    cross_ref_limit = 3
-    Body_type = 'rb'
-    tolerance_sheet = [0.02, 0.02, 0.02]
-    tolerance_gripper = [0.005, 0.06, 0.005]
+#     cross_ref_limit = 3
+#     Body_type = 'rb'
+#     tolerance_sheet = [0.02, 0.02, 0.02]
+#     tolerance_gripper = [0.005, 0.06, 0.005]
 
-    _params = {
-        'RigidBody': {'len':7,
-                    'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']},
-        'Marker': {'len':3,
-                    'dof': ['X', 'Y', 'Z']}
-    }
-
-
-    Marker_OI = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'D1', 'D2', 'D3', 'D4', 'D5', 'E1', 'E2', 'E3', 'E4', 'E5']
-    gripper_marker_name = ['GS']
-    RigidBody_OI = ['battery', 'chisel', 'gripper']
-    REF_FRAME = 100
+#     _params = {
+#         'RigidBody': {'len':7,
+#                     'dof': ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']},
+#         'Marker': {'len':3,
+#                     'dof': ['X', 'Y', 'Z']}
+#     }
 
 
-    dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/'
-    save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned_old/'
+#     Marker_OI = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'D1', 'D2', 'D3', 'D4', 'D5', 'E1', 'E2', 'E3', 'E4', 'E5']
+#     gripper_marker_name = ['GS']
+#     RigidBody_OI = ['battery', 'chisel', 'gripper']
+#     REF_FRAME = 100
 
-    B_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
-    G_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
+
+#     dir_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/raw_traj/'
+#     save_path = '/home/cam/Documents/scratch/diffusion_policy_cam/diffusion_pipline/data_chisel_task/new_cleaned_old/'
+
+#     B_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
+#     G_MOIs = _get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
 
     
