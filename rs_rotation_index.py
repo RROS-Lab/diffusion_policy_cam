@@ -37,15 +37,17 @@ def plot_battery_motion(ax, data, stop_index):
 
 def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_Bt: list[6]) -> list[3]:
     '''
-    W_V0 : list[3] : Marker position at time 0
-    B0_TxyzRxyz : list[6] : Battery pose at time 0
-    Bt_TxyzRxyz : list[6] : Battery pose at time t
-    ---
-    return : list[3] : Marker position wrt Battery at time t 
+    Calculate the new marker position in the world frame at time t
+    W_V0: Marker position wrt Battery at time 0
+    W_TxyzRxyz_B0: Battery pose at time 0
+    W_TxyzRxyz_Bt: Battery pose at time t
+    ----------------
+    Returns: Marker position wrt World at time t
     '''
     B0_V0 = rma.Vxyz_wrt_TxyzRxyz(W_V0, W_TxyzRxyz_B0) # Marker position wrt Battery at time 0
-    B_V = B0_V0 # Marker position wrt Battery at time t
-    B0_T_W = rm.invH(rm.TxyzRxyz_2_Pose(W_TxyzRxyz_B0))
+    B_V = B0_V0 # Marker position wrt Battery at time t is considered same as time 0 as the marker is rigidly attached to the battery
+    W_T_B0 = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_B0)
+    B0_T_W = rm.invH(W_T_B0)
     W_V = rma.Vxyz_wrt_Pose(B_V, B0_T_W) # Marker position wrt Battery at time t
     return W_V
     
