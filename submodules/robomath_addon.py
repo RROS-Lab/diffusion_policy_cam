@@ -112,9 +112,9 @@ def robodk_2_motive(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
 
     return [Z, X, Y, w, z, x, y]
 
-def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> rm.Mat:
+def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> list:
     """
-    Convert a point in the base frame to the tool frame.
+    from a vector to a point in the base frame, get a vector to the point from tool frame (in the tool frame)
     """
     W_M = list(Txyz) # vector in the base frame
     W_T_G = Pose # base to tool transformation matrix
@@ -128,12 +128,19 @@ def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> rm.Mat:
     G_V = G_V.tolist()[:3]
     return G_V 
 
-
 def Vxyz_wrt_TxyzQwxyz(Txyz: Union[list, np.ndarray], TxyzQwxyz: Union[list, np.ndarray]) -> np.ndarray:
     """
-    Convert a point in the base frame to the tool frame.
+    from a vector to a point in the base frame, get a vector to the point from tool frame (in the tool frame)
     """
     _Pose = TxyzQwxyz_2_Pose(TxyzQwxyz) # base to tool transformation matrix
+    return Vxyz_wrt_Pose(Txyz, _Pose)
+
+
+def Vxyz_wrt_TxyzRxyz(Txyz: Union[list, np.ndarray], TxyzRxyz: Union[list, np.ndarray]) -> np.ndarray:
+    """
+    from a vector to a point in the base frame, get a vector to the point from tool frame (in the tool frame)
+    """
+    _Pose = rm.TxyzRxyz_2_Pose(TxyzRxyz) # base to tool transformation matrix
     return Vxyz_wrt_Pose(Txyz, _Pose)
 
 def BxyzQwxyz_wrt_AxyzQwxyz(AxyzQwxyz: Union[list, np.ndarray], BxyzQwxyz: Union[list, np.ndarray]) -> np.ndarray:

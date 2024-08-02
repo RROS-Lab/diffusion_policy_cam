@@ -4,15 +4,17 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 import submodules.robomath_addon as rma
-
+import submodules.robomath as rm
 from scipy.signal import savgol_filter #apply sg filter
 
-def get_battery_stop_index(data, thresehold = 1):
+START_FRAME = 0
+
+def get_battery_stop_index(data, START_FRAME, thresehold):
     _times = data.get_time()
     battery = data.get_rigid_TxyzRxyz()['battery']
     W_T_bat = battery
     
-    W_T_bat0 = battery[0]
+    W_T_bat0 = battery[START_FRAME]
     bat0_T_bat = np.apply_along_axis(rma.BxyzRxyz_wrt_AxyzRxyz, 1, W_T_bat, W_T_bat0)
     yaw = bat0_T_bat[:,5]
     yaw = savgol_filter(yaw, 100, 3)
@@ -33,6 +35,20 @@ def plot_battery_motion(ax, data, stop_index):
     ax.axvline(x=times[stop_index], color='r', linestyle='--')
     
 
+def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_Bt: list[6]) -> list[3]:
+    '''
+    W_V0 : list[3] : Marker position at time 0
+    B0_TxyzRxyz : list[6] : Battery pose at time 0
+    Bt_TxyzRxyz : list[6] : Battery pose at time t
+    ---
+    return : list[3] : Marker position wrt Battery at time t 
+    '''
+    B0_V0 = rma.Vxyz_wrt_TxyzRxyz(W_V0, W_TxyzRxyz_B0) # Marker position wrt Battery at time 0
+    B_V = B0_V0 # Marker position wrt Battery at time t
+    B0_T_W = rm.invH(rm.TxyzRxyz_2_Pose(W_TxyzRxyz_B0))
+    W_V = rma.Vxyz_wrt_Pose(B_V, B0_T_W) # Marker position wrt Battery at time t
+    return W_V
+    
     
 
 if __name__ == "__main__":
@@ -41,14 +57,13 @@ if __name__ == "__main__":
     files = os.listdir(base_dir)
     files  = [file for file in files if file.endswith('.csv')]
     
-    
-    
-    for file in files:
+    for _index, file in enumerate(files):
+        if _index == 1: break
         print(file)
         
         path = os.path.join(base_dir, file)
         data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
-        stop_index = get_battery_stop_index(data)
+        stop_index = get_battery_stop_index(data, START_FRAME, thresehold=0.1)
         
         fig = plt.figure()
         fig.suptitle('Battery Motion')
