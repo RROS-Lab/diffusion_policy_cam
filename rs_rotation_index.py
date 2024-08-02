@@ -46,9 +46,9 @@ def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_B
     '''
     B0_V0 = rma.Vxyz_wrt_TxyzRxyz(W_V0, W_TxyzRxyz_B0) # Marker position wrt Battery at time 0
     B_V = B0_V0 # Marker position wrt Battery at time t is considered same as time 0 as the marker is rigidly attached to the battery
-    W_T_B0 = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_B0)
-    B0_T_W = rm.invH(W_T_B0)
-    W_V = rma.Vxyz_wrt_Pose(B_V, B0_T_W) # Marker position wrt Battery at time t
+    W_T_B = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_Bt)
+    B_T_W = rm.invH(W_T_B)
+    W_V = rma.Vxyz_wrt_Pose(B_V, B_T_W) # Marker position wrt Battery at time t
     return W_V
     
     
