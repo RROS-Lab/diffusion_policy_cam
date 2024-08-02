@@ -1,9 +1,10 @@
-# import submodules.robomath_addon as rma
-# import submodules.motive_file_cleaner as mfc
-# import submodules.data_filter as _df
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import submodules.cleaned_file_parser as cfp
 import submodules.data_filter as _df
-import os
 import numpy as np
 from matplotlib import pyplot as plt
 import submodules.robomath_addon as rma

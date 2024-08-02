@@ -1,5 +1,10 @@
-import submodules.cleaned_file_parser as cfp
+import sys
 import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
+
+import submodules.cleaned_file_parser as cfp
 import pandas as pd
 import numpy as np
 import submodules.data_filter as _df

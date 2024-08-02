@@ -1,9 +1,13 @@
 # diffusion policy import
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 from typing import Tuple, Sequence, Dict, Union, Optional
 import numpy as np
 import pandas as pd
 import math
-import os
 import time
 import torch
 import torch.nn as nn

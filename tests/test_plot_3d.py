@@ -1,6 +1,8 @@
-# import submodules.robomath_addon as rma
-# import submodules.motive_file_cleaner as mfc
-# import submodules.data_filter as _df
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 from submodules.plot_traj_3d import PlotTraj3D
 import numpy as np
 from matplotlib import pyplot as plt

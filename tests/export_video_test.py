@@ -1,3 +1,9 @@
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
+
 from get_video_from_csv import get_video_from_csv
 import os
 from tqdm import tqdm  # Import tqdm for progress bar functionality

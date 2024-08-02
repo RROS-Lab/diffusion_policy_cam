@@ -1,10 +1,10 @@
-import submodules.cleaned_file_parser as cfp
-import submodules.data_filter as _df
+import cleaned_file_parser as cfp
+import data_filter as _df
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-import submodules.robomath_addon as rma
-import submodules.robomath as rm
+import robomath_addon as rma
+import robomath as rm
 from scipy.signal import savgol_filter #apply sg filter
 
 START_FRAME = 0
