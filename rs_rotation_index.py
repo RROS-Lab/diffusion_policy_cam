@@ -48,9 +48,8 @@ def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_B
     B_V = B0_V0 # Marker position wrt Battery at time t is considered same as time 0 as the marker is rigidly attached to the battery
     W_T_B = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_Bt)
     B_T_W = rm.invH(W_T_B)
-    W_V = rma.Vxyz_wrt_Pose(B_V, B_T_W) # Marker position wrt Battery at time t
+    W_V = rma.Vxyz_wrt_Pose(B_V, B_T_W) # Marker position wrt World at time t (in world frame)
     return W_V
-    
     
 
 if __name__ == "__main__":
