@@ -10,8 +10,6 @@ from matplotlib import pyplot as plt
 # from submodules.trajectory_animator import TrajectoryAnimator
 
 def get_visualization(data, save_path=None, video=False):
-    
-
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
 
     rigid_bodies_dict = data.get_rigid_TxyzQwxyz()
@@ -105,25 +103,29 @@ if __name__ == "__main__":
 
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-    base_dir = './diffusion_pipline/data_chisel_task/fixing_markers'
-    save_dir = './diffusion_pipline/data_chisel_task/fixing_markers'
+    base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/re-evalute'
+    save_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/re-evalute'
     
     cleaned_file_names = os.listdir(base_dir)
 
-    for file_name in cleaned_file_names:
+    for _index, file_name in enumerate(cleaned_file_names):
         if file_name.split('.')[-1] != 'csv':
             continue
-        
+
         print(file_name)
         read_path = os.path.join(base_dir, file_name)
         data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
         file_name = read_path.split('/')[-1].split('.')[0]
 
+        
         # data.save_2_csv(file_path=write_path, save_type='EULER')
         try:
+            # get_visualization(data=data,
+            #                 save_path=os.path.join(save_dir, file_name + '.png'),
+            #                 video=False)
             get_visualization(data=data,
-                            save_path=os.path.join(save_dir, file_name + '.png'),
-                            video=False)
+                            save_path=os.path.join(save_dir, file_name + '.mp4'),
+                            video=True)
         except Exception as e:
             print(f'file: {file_name} failed with error: \n\n{e}')
             # continue

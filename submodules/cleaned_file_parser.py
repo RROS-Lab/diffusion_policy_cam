@@ -62,7 +62,7 @@ class DataParser:
                 rb_TxyzQwxyz[rb] = self.data[sorted_columns].values.astype(float)
 
             elif self.file_type == 'EULER':
-                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
+                rb_TxyzQwxyz[rb] = np.apply_along_axis(rma.TxyzRxyz_2_TxyzQwxyz, 1, self.data[sorted_columns].values.astype(float))
 
         for key, value in kwargs.items():
             if key == 'item':
