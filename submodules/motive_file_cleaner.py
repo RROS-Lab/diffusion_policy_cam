@@ -84,7 +84,6 @@ def _pre_process(csv_path:str) -> tuple[pd.DataFrame, str]:
     _data = _data.drop(indices_drop).reset_index(drop=True)
     return _data, FPS 
 
-
 def _get_items_of_interest(Names:np.ndarray, Rot_Pos:np.ndarray, TxyzQwxyz:np.ndarray, RigidBody_OI: list) -> dict:
     _clms = {"rb": {}, "mk": {}, "times":1} # {"rb": {"name": {"X":,... "w":,..}}, "mk": {"name": {"X":, "Y":, "Z": }}}
 
@@ -177,6 +176,44 @@ def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI
     
     return marker_limit
 
+def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
+    # Construct mk_to_filter_dict
+    mk_to_filter_dict = {
+        name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values
+        for name in DOI_dict['mk']
+        if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()
+    }
+    
+    # Initialize a set to hold all concatenated filter labels
+    filter_labels_combined = set()
+
+    # Process each type of marker ('battery', 'gripper', etc.)
+    for item_key, MOI_set in MOIs.items():
+        pos = DOI_dict['rb'][item_key].iloc[REF_FRAME].dropna().values
+        marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, pos)
+        filter_labels = filter_MOIs(marker_vectors, MOI_set)
+        
+        # Update the combined set with filter labels
+        filter_labels_combined.update(filter_labels)
+        
+        # Check results for current item
+        if len(filter_labels) == len(Marker_OI):
+            print(f"File: {save_file} has all {item_key} markers")
+        elif len(filter_labels) > len(Marker_OI):
+            print(f"File: {save_file} has extra {item_key} markers")
+            print("Stopping execution......................")
+            return  # Exit the function
+        else:
+            print(f"File: {save_file} has missing {item_key} markers")
+            print("Stopping execution......................")
+            return  # Exit the function
+
+    # Convert the combined set to a list if needed
+    filter_labels_combined = list(filter_labels_combined)
+
+    return filter_labels_combined
+    
+
 
 def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
     '''
@@ -218,7 +255,7 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
 ########################################################################################
 ####### MAIN FUNCTION BELLOW ##########################################################
 
-def motive_chizel_task_cleaner(csv_path:str, save_path:str, RigidBody_OI: list, Marker_OI: list, _params: dict, REF_FRAME: int, B_MOIs: dict) -> None:
+def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: dict, REF_FRAME: int, MOIs: dict) -> None:
     '''
     dir_path: str
         path to the csv files
@@ -231,30 +268,9 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, RigidBody_OI: list, 
     save_file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
     file_path = os.path.join(save_path, save_file)
 
-    DOI_dict, FPS = _get_data_dictionary(csv_path, RigidBody_OI)
+    DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'])
 
-    mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
-                        for name in DOI_dict['mk'] 
-                        if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
-    
-    battery_pos = DOI_dict['rb']['battery'].iloc[REF_FRAME].dropna().values
-    sheet_markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, battery_pos)
-    gripper_pos = DOI_dict['rb']['gripper'].iloc[REF_FRAME].dropna().values
-    gripper_marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, gripper_pos)
-    
-    # filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs) | filter_MOIs(gripper_marker_vectors, G_MOIs)
-    filter_labels = filter_MOIs(sheet_markers_vectors, B_MOIs)
-    
-    if len(filter_labels) == len(Marker_OI):
-        print(f"File: {save_file} has all markers")
-    elif len(filter_labels) > len(Marker_OI):
-        print(f"File: {save_file} has extra markers")
-        print("Stopping execution......................")
-        return  # Exit the function
-    else:
-        print(f"File: {save_file} has missing markers")
-        print("Stopping execution......................")
-        return  # Exit the function
+    filter_labels = _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, OI['Marker'])
     
     # Create a set of keys to remove
     keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
@@ -270,7 +286,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, RigidBody_OI: list, 
         # print(f"Removing extra key: {key}")
         DOI_dict['mk'].pop(key)
     print("File path: ", save_file)
-    _data = _get_cleaned_dataframe(DOI_dict, FPS, RigidBody_OI, Marker_OI, _params)
+    _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)
 
     _data.to_csv(f'{file_path}', index=False)
         

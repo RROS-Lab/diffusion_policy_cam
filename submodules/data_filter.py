@@ -24,8 +24,6 @@ def distance(current : np.array, next: np.array) -> float:
     return distance
 
 
-
-
 def apply_savgol_filter(df: pd.DataFrame, window_size: int, polyorder: int, time_frame: bool = True) -> pd.DataFrame:
     """
     Applies Savitzky-Golay filter to all columns in the DataFrame.
