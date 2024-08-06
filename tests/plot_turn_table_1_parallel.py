@@ -90,29 +90,34 @@ def get_visualization(data, save_path=None, video=False):
         plt.show()
         # plt.show()
 
-def process_file(file_name, base_dir, save_dir):
+def process_and_visualize(file_name, base_dir, save_dir):
     if file_name.split('.')[-1] != 'csv':
         return
     
     read_path = os.path.join(base_dir, file_name)
-    data = cfp.DataParser.from_euler_file(file_path=read_path, target_fps=120.0, filter=True, window_size=15, polyorder=3)
-    file_name = read_path.split('/')[-1].split('.')[0]
-
     try:
+        data = cfp.DataParser.from_euler_file(file_path=read_path, target_fps=120.0, filter=True, window_size=15, polyorder=3)
+        file_name = read_path.split('/')[-1].split('.')[0]
+
         get_visualization(data=data,
                           save_path=os.path.join(save_dir, file_name + '.mp4'),
                           video=True)
     except Exception as e:
         print(f'file: {file_name} failed with error: \n\n{e}')
 
-
 def main():
-    base_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/filtered'
-    save_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/filtered/videos'
-    cleaned_file_names = os.listdir(base_dir)
+    base_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/test_5_noNAN'
+    save_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/test_5_noNAN/videos'
+    
+    cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_file, file_name, base_dir, save_dir) for file_name in cleaned_file_names]
+    # files_not_2_plot = 
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
+        futures = []
+        for file_name in cleaned_file_names:
+            print(f"Submitting {file_name} for processing")
+            futures.append(executor.submit(process_and_visualize, file_name, base_dir, save_dir))
 
         for future in concurrent.futures.as_completed(futures):
             try:
@@ -120,55 +125,6 @@ def main():
             except Exception as e:
                 print(f'Error in future: {e}')
 
-
 if __name__ == "__main__":
     main()
-
-# if __name__ == "__main__":
-#     import submodules.cleaned_file_parser as cfp
-#     import submodules.plot_traj_3d as pt3d
-#     import os
-#     import warnings
-#     warnings.filterwarnings("ignore")
-
-#     #write
-    
-    
-    
-#     # read_path = write_path # test read
-    
-
-#     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
-#     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-#     base_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/filtered'
-#     save_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/videos'
-
-    
-#     cleaned_file_names = os.listdir(base_dir)
-
-#     for _index, file_name in enumerate(cleaned_file_names):
-#         if file_name.split('.')[-1] != 'csv':
-#             continue
-        
-#         # if _index == 0:
-#         #     continue
-        
-#         print(file_name)
-#         read_path = os.path.join(base_dir, file_name)
-#         data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-#         file_name = read_path.split('/')[-1].split('.')[0]
-
-        
-#         # data.save_2_csv(file_path=write_path, save_type='EULER')
-#         try:
-#             # get_visualization(data=data,
-#             #                 save_path=os.path.join(save_dir, file_name + '.png'),
-#             #                 video=False)
-#             get_visualization(data=data,
-#                             save_path=os.path.join(save_dir, file_name + '.mp4'),
-#                             video=True)
-#         except Exception as e:
-#             print(f'file: {file_name} failed with error: \n\n{e}')
-#             # continue
-#             # raise e
 
