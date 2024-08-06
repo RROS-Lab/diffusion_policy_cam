@@ -53,6 +53,7 @@ REF_FRAME = 100
 dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/raw_traj/'
 save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/test/'
 
+
 B_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
 G_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
 
