@@ -148,9 +148,10 @@ def _is_mk_within_box(marker: tuple[3], center: tuple[3], tolerance: tuple[3]) -
     '''This function is used to check if the marker is within the box'''
     return all(abs(marker[i] - center[i]) <= tolerance[i] for i in range(3))
 
-def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, tolerance: list, marker_label: list, cross_ref_limit: int) -> dict:
+def _get_marker_details_dict(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, tolerance: list, marker_label: list, cross_ref_limit: int) -> dict:
     '''
-    This function is used to get the marker limit for the chisel task
+    output: dict
+    marker_limit = {"names": marker_label, "pos": list[X, Y, Z], "tolerance": list[X, Y, Z]}
     '''
     dicts = []
     for index, file in enumerate(os.listdir(dir_path)):
