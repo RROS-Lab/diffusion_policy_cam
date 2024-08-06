@@ -153,8 +153,11 @@ def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI
     This function is used to get the marker limit for the chisel task
     '''
     dicts = []
+    files_used = []
     for index, file in enumerate(os.listdir(dir_path)):
         if file.endswith('.csv') and index < cross_ref_limit:
+            files_used.append(file)
+            
             csv_path = os.path.join(dir_path, file)
 
             DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI)
@@ -173,6 +176,7 @@ def _get_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI
     similar_keys = find_similar_values_across_all(dicts, tolerance)
     
     marker_limit = {"names": marker_label, "pos": [key for key in similar_keys.keys()], "tolerance": tolerance}
+    print(f"Files used: {files_used}")
     
     return marker_limit
 
@@ -185,54 +189,78 @@ def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
     }
     
     # Initialize a set to hold all concatenated filter labels
-    filter_labels_combined = set()
+    filter_labels_combined = {}
 
     # Process each type of marker ('battery', 'gripper', etc.)
     for item_key, MOI_set in MOIs.items():
         pos = DOI_dict['rb'][item_key].iloc[REF_FRAME].dropna().values
         marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, pos)
+        
         filter_labels = filter_MOIs(marker_vectors, MOI_set)
         
-        # Update the combined set with filter labels
-        filter_labels_combined.update(filter_labels)
+        # Update the combined dictionary with filter labels
+        for key, labels in filter_labels.items():
+            if key in filter_labels_combined:
+                filter_labels_combined[key].update(labels)
+            else:
+                filter_labels_combined[key] = labels
         
-        # Check results for current item
-        if len(filter_labels) == len(Marker_OI):
-            print(f"File: {save_file} has all {item_key} markers")
-        elif len(filter_labels) > len(Marker_OI):
-            print(f"File: {save_file} has extra {item_key} markers")
-            print("Stopping execution......................")
-            return  # Exit the function
-        else:
-            print(f"File: {save_file} has missing {item_key} markers")
-            print("Stopping execution......................")
-            return  # Exit the function
-
-    # Convert the combined set to a list if needed
-    filter_labels_combined = list(filter_labels_combined)
-
+    # Check results for current item
+    if len(filter_labels_combined) == len(Marker_OI):
+        print(f"File: {save_file} has all {item_key} markers")
+    elif len(filter_labels_combined) > len(Marker_OI):
+        print(f"File: {save_file} has extra {item_key} markers")
+        print("Stopping execution......................")
+        return  # Exit the function
+    else:
+        print(f"File: {save_file} has missing {item_key} markers")
+        print("Stopping execution......................")
+        return  # Exit the function
+    
     return filter_labels_combined
     
-
-
+    
 def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
     '''
     This function is used to get the cleaned dataframe
     Changing to robodk frame First time for the rigid body and markers'''
+    ###### ADDED CODE TO REMOVE EXTRA MARKERS reduced to 9 ########
+    # list_keys = ['A2', 'C2', 'E5', 'B2', 'B1', 'D2', 'B4', 'B5', 'D3']
+    list_keys = ['C2', 'E5', 'B1', 'B4', 'B5']
+    
     
     df = pd.concat(
         [DOI_dict["times"]] +
         [_df.rename_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
-        [_df.rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"]],
+        [_df.rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"] if name in list_keys],
         axis=1
     )
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['RigidBody']['len'] + ["Marker"] * len(Marker_OI) * _params['Marker']['len'])
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['RigidBody']['len'] + ["Marker"] * len(list_keys) * _params['Marker']['len'])
+    
+    # Filter columns
+    # filtered_columns_rigid = [col for col in df.columns if any(keyword in col for keyword in RigidBody_OI)]
+    # filtered_columns_marker = [col for col in df.columns if any(keyword in col for keyword in list_keys)]
+    
+    # # Create new DataFrame with filtered columns
+    # rigid_data = df[filtered_columns_rigid]
+    # marker_data = df[filtered_columns_marker]
+    # # Step 1: Identify rows with NaN values
+    # nan_rows_rigid = rigid_data.isna().any(axis=1)
+    # nan_rows_marker = marker_data.isna().any(axis=1)
+    # # Step 2: Get indexes of rows with NaN values
+    # indexes_with_nan = nan_rows_rigid[nan_rows_rigid].index.to_list()
+    # df = df.drop(indexes_with_nan)
+    # df = df.reset_index(drop=True)
+    # # Perform quadratic spline interpolation
+    # df = df.interpolate(method='spline', order=3)
+
+    
     _HEADER_ROW = df.columns
     add_row = pd.DataFrame([pd.Series(["FPS", FPS] + [0] * (len(df.columns) - 2), index=df.columns, dtype=str)], columns=df.columns)
 
     ######## ADDING THE ITEM ROW TO THE DATAFRAME ########
     item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=df.columns)
-    combined_set = RigidBody_OI + Marker_OI
+    combined_set = RigidBody_OI + list_keys
 
     for rb in combined_set:
         rb_columns = [col for col in df.columns if col.startswith(rb)]
@@ -242,11 +270,16 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
             df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, df[rb_columns].values.astype(float))
             
     df = pd.concat([df.iloc[:0], add_row, item_row, df.iloc[0:]], ignore_index=True) ## add_row is the FPS row and item_row is the header row
-    df = df.dropna()
-    df = df.reset_index(drop=True)
-    df.columns = _SUP_HEADER_ROW
-
-    return df
+    len_df = len(df)
+    df_no_NAN = df.dropna()
+    df_no_NAN = df_no_NAN.reset_index(drop=True)
+    
+    if len_df - len(df_no_NAN) < 480:
+        print("NAN values found and removed")
+        df_no_NAN.columns = _SUP_HEADER_ROW
+        return df_no_NAN
+    
+    return False
 
 ########################################################################################
 ########################################################################################
@@ -266,7 +299,6 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
 
     '''
     save_file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
-    file_path = os.path.join(save_path, save_file)
 
     DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'])
 
@@ -286,9 +318,11 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
         # print(f"Removing extra key: {key}")
         DOI_dict['mk'].pop(key)
     print("File path: ", save_file)
+    
     _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)
-
-    _data.to_csv(f'{file_path}', index=False)
+    
+    if _data is not False:
+        _data.to_csv(f'{save_path}', index=False)
         
 
 # if __name__ == "__main__":

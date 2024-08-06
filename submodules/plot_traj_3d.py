@@ -59,7 +59,28 @@ class PlotTraj3D(object):
     @classmethod
     def plot_nodes(cls, ax, nodes: np.ndarray) -> None:
         return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+    
+    # @classmethod
+    # def plot_nodes(cls, ax, nodes: dict) -> None:
+    #     """
+    #     Plots nodes as a scatter plot and adds text labels at each node's position.
 
+    #     Parameters:
+    #     - ax: The matplotlib axis object to plot on.
+    #     - nodes: A dictionary where keys are node labels and values are node coordinates (3D).
+    #     """
+    #     # Extract coordinates and labels
+    #     labels = list(nodes.keys())
+    #     coordinates = np.array(list(nodes.values()))
+        
+    #     # Scatter plot
+    #     scatter = ax.scatter(coordinates[:, 0], coordinates[:, 1], coordinates[:, 2], marker='o')
+
+    #     # Add text labels
+    #     for i, (label, (x, y, z)) in enumerate(zip(labels, coordinates)):
+    #         ax.text(x, y, z, label, fontsize=9, ha='right')
+
+    #     return scatter
     
     @classmethod
     def plot_coordinate_frame(cls, ax, XYZwxyz: np.ndarray[7], size:float=0.1, linewidth:float=1) -> None:
