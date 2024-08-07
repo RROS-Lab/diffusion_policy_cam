@@ -320,7 +320,7 @@ def _get_sheet_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, B
     
     similar_keys = find_similar_values_across_all(dicts, tolerance)
     similar_vectors = [key for key in similar_keys.keys()]
-    labeled_points = filter_clusters(similar_vectors, 0.0095)
+    labeled_points = filter_clusters(similar_vectors, tolerance[2])
     
     marker_limit = {"names": [label_info[0] for label_info in labeled_points], "pos": [label_info[1] for label_info in labeled_points], "tolerance": tolerance}
     
