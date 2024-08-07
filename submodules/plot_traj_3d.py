@@ -57,8 +57,20 @@ class PlotTraj3D(object):
         return ax.plot(path[:, 0], path[:, 1], path[:, 2])
 
     @classmethod
-    def plot_nodes(cls, ax, nodes: np.ndarray) -> None:
-        return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+    def plot_nodes(cls, ax, nodes: np.ndarray, **kwargs) -> None:
+        # Extract coordinates and labels
+        labels = kwargs.get('labels', [])
+        
+        # Scatter plot
+        scatter = ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+
+        # Add text labels
+        for i, (label, (x, y, z)) in enumerate(zip(labels, nodes)):
+            ax.text(x, y, z, label, fontsize=9, ha='right')
+
+        return scatter
+        
+        # return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
     
     # @classmethod
     # def plot_nodes(cls, ax, nodes: dict) -> None:

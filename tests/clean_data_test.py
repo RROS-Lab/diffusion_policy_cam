@@ -31,7 +31,7 @@ print("..........")
 #             csv_path = path, save_path=save_path
 #         )
 
-cross_ref_limit = 4
+cross_ref_limit = 5
 Body_type = 'rb'
 tolerance_sheet = [0.02, 0.02, 0.02]
 tolerance_gripper = [0.005, 0.06, 0.005]
@@ -44,23 +44,22 @@ _params = {
 }
 
 
-Marker_OI = ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'D1', 'D2', 'D3', 'D4', 'D5', 'E1', 'E2', 'E3', 'E4', 'E5']
 gripper_marker_name = ['GS']
 RigidBody_OI = ['battery', 'chisel', 'gripper']
 REF_FRAME = 100
 
 
 dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/raw_traj/'
-save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/test_5_markers/'
+save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/train_with_sorted_marker_name/'
 
-B_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, Marker_OI, cross_ref_limit)
+B_MOIs = mfc._get_sheet_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, cross_ref_limit)
 # G_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
 
 
 MOIs = {'battery': B_MOIs}
 print(len(MOIs['battery']['pos']))
 
-Oi = {'RigidBody': RigidBody_OI, 'Marker': Marker_OI}
+Oi = {'RigidBody': RigidBody_OI, 'Marker': B_MOIs['names']}
 files = os.listdir(dir_path)
 
 
