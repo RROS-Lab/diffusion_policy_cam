@@ -17,62 +17,62 @@ data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=F
 # print(data.rigid_bodies)
 # print(data.markers)
 
-_times = data.get_time()
+# _times = data.get_time()
 
-# =====
-battery = data.get_rigid_TxyzRxyz()['battery']
-W_T_bat = battery
+# # =====
+# battery = data.get_rigid_TxyzRxyz()['battery']
+# W_T_bat = battery
 
-# ====
-W_T_bat0 = battery[0]
-bat0_T_bat = np.apply_along_axis(rma.BxyzRxyz_wrt_AxyzRxyz, 1, W_T_bat, W_T_bat0)
-yaw = bat0_T_bat[:,5]
-# =====
-# yaw = np.linalg.norm(W_T_bat, axis=1)
+# # ====
+# W_T_bat0 = battery[0]
+# bat0_T_bat = np.apply_along_axis(rma.BxyzRxyz_wrt_AxyzRxyz, 1, W_T_bat, W_T_bat0)
+# yaw = bat0_T_bat[:,5]
+# # =====
+# # yaw = np.linalg.norm(W_T_bat, axis=1)
 
-from scipy.signal import savgol_filter #apply sg filter
-yaw = savgol_filter(yaw, 100, 3)
-# ====
-# yaw = np.unwrap(yaw)
-yaw = np.rad2deg(yaw)
-yaw_dot = rma.first_derivative(yaw, _times)
-
-
-
-plt.plot(_times, yaw_dot)
-plt.xlabel('Time')
-plt.ylabel('Yaw Rate')
-# Compute the differences (angular velocity)
-# angular_velocity = np.diff(euler_angles, axis=0)
-# angular_velocity_magnitude = np.linalg.norm(angular_velocity, axis=1)
+# from scipy.signal import savgol_filter #apply sg filter
+# yaw = savgol_filter(yaw, 100, 3)
+# # ====
+# # yaw = np.unwrap(yaw)
+# yaw = np.rad2deg(yaw)
+# yaw_dot = rma.first_derivative(yaw, _times)
 
 
-# Find the end of rotation
-thresehold = 1
-final_yaw = yaw[-1]
-stop_index = np.argmax(np.abs(yaw_dot[::-1]) > thresehold)  # Find from the reverse
-stop_index = len(yaw_dot) - stop_index - 1  # Convert to forward index
-stop_time = _times[stop_index]
+
+# plt.plot(_times, yaw_dot)
+# plt.xlabel('Time')
+# plt.ylabel('Yaw Rate')
+# # Compute the differences (angular velocity)
+# # angular_velocity = np.diff(euler_angles, axis=0)
+# # angular_velocity_magnitude = np.linalg.norm(angular_velocity, axis=1)
 
 
-print(stop_time)
+# # Find the end of rotation
+# thresehold = 1
+# final_yaw = yaw[-1]
+# stop_index = np.argmax(np.abs(yaw_dot[::-1]) > thresehold)  # Find from the reverse
+# stop_index = len(yaw_dot) - stop_index - 1  # Convert to forward index
+# stop_time = _times[stop_index]
 
 
-print()
-'''
-# rigid_state = data.get_rigid_state(item = ['chisel'])
-markers = data.get_marker_Txyz()
+# print(stop_time)
+
+
+# print()
+# '''
+rigid_state = data.get_rigid_state()
+markers = data.get_marker_Txyz()['A1']
 # time = data.get_time()
 
 
-print(rigid['gripper'][0])
-print(rigid['chisel'][0])
+print(rigid_state['gripper'][0])
+print(rigid_state['chisel'][0])
 # for i in range(5):
     # print(markers['A1'][-i][0])
     # print(markers['B1'][-i][0])
     # print(markers['C1'][-i][0])
 
-print(markers['A1'][0])
+print(len(markers))
 # print(rigid_state['chisel'][0])
 # print(time[0])
 
@@ -97,4 +97,3 @@ print(markers['A1'][0])
 # if len(dict_of_df_rigid) == len(dict_of_df_marker):
 #     rigiddataset, index = _df.episode_combiner(dict_of_df_rigid)
 
-'''

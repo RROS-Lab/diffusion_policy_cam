@@ -207,8 +207,6 @@ class DataParser:
             writer.writerow(_HEADER_ROW)
             writer.writerows(_transformed_data)
 
-
-
     @classmethod
     def from_euler_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
 
