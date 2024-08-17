@@ -20,7 +20,7 @@ def distance(current : np.array, next: np.array) -> float:
     """
     Calculate the distance between two points.
     """
-    distance = np.linalg.norm(current - current)
+    distance = np.linalg.norm(next - current)
     return distance
 
 
@@ -177,9 +177,12 @@ def velocity_to_state(data_state_dict: dict[str :np.array], data_time: np.array,
 
     return data_velocity_dict
 
-def rename_columns_with_prefix(df, prefix):
-    return df.rename(columns=lambda x: f"{prefix}_{x}")
+def rename_rb_columns_with_prefix(df, prefix):
+    return df.rename(columns=lambda x: f"{prefix.split('_')[0]}_{x}")
 
+
+def rename_ms_columns_with_prefix(df, prefix):
+    return df.rename(columns=lambda x: f"{prefix}_{x}")
 
 def trim_lists_in_dicts(dicts):
     # Step 1: Determine the minimum number of lists across all dictionaries

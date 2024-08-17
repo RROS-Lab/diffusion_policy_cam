@@ -19,8 +19,13 @@ def compare_values(val1, val2, tol):
     return all((np.abs(a - b) <= t).all() for a, b, t in zip(val1, val2, tol))
 
 
+def _is_mk_within_box(marker: tuple[3], center: tuple[3], tolerance: tuple[3]) -> bool:
+    '''This function is used to check if the marker is within the box'''
+    return all(abs(marker[i] - center[i]) <= tolerance[i] for i in range(3))
+
+
+
 def find_similar_values_across_all(dicts, tolerance):
-    
     
     similar_keys = {}
 
@@ -117,6 +122,167 @@ def filter_MOIs(markers_dict: dict, MOIs: dict) -> dict:
     return filtered_markers
 
 
+
+def _pre_process(csv_path:str) -> tuple[pd.DataFrame, str]:
+    '''
+    This function is used to pre-process the data
+    input = csv_path: str
+    output = _data: pandas dataframe
+            FPS: str
+    '''
+    
+    _data = pd.read_csv(csv_path)
+    FPS = _data.columns[7]
+    _data = _data.reset_index(drop=False)
+    indices_drop = [2]
+    _data = _data.drop(indices_drop).reset_index(drop=True)
+    return _data, FPS 
+
+
+def _sort_data(_data: pd.DataFrame, type_info: dict, order: list) -> dict:
+    '''
+    This function is used to sort the data according to the order and item type
+    input = _data: pandas dataframe
+            type_info: dictionary of type information
+            order: list of order
+    output = dict: dictionary of sorted data
+    '''
+    dict = {}
+    for data_name, indices in type_info.items():
+        sorted_indices = [indices[key] for key in order]
+        
+        sort_data = _data.iloc[:, sorted_indices]
+        #convert data to float
+        sort_data = sort_data.astype(float)
+        sort_data.columns = [key for key in order]
+        dict[data_name]= sort_data
+        
+    return dict
+
+def _get_invalid_rows(data_frame: pd.DataFrame) -> pd.Index:
+    """
+    Identifies rows with NaN, Inf, or empty values in the DataFrame.
+    """
+    invalid_rows = data_frame.isnull().any(axis=1) | data_frame.isin([np.inf, -np.inf]).any(axis=1) | data_frame.isin([""]).any(axis=1)
+    return data_frame[invalid_rows].index
+
+def _drop_invalid_rows(_DOI: dict, invalid_rows: list) -> dict:
+    """
+    Drops rows with NaN, Inf, or empty values in the DataFrame.
+    """
+    for category in _DOI.keys():
+        _DOI[category] = {
+            key: df.drop(invalid_rows).reset_index(drop=True)
+            for key, df in _DOI[category].items()
+        }
+    return _DOI
+
+
+def _get_items_of_interest(Names:np.ndarray, Rot_Pos:np.ndarray, TxyzQwxyz:np.ndarray, RigidBody_OI: list, MarkerSet_OI: list) -> dict:
+    '''
+    This function is used to get the items of interest
+    input = Names: of the items
+            Rot_Pos: Rotation or Position information
+            TxyzQwxyz: Rotation and Position values
+            RigidBody_OI: list of rigid bodies
+    output = _clms: dictionary of columns
+    '''
+    
+    
+    _clms = {"rb": {}, "mk": {}, "ms":{} ,"times":1} # {"rb": {"name": {"X":,... "w":,..}}, "mk": {"name": {"X":, "Y":, "Z": }}}
+
+    for index, (name, rot_or_pos, XYZwzyz) in enumerate(zip(Names, Rot_Pos, TxyzQwxyz)):
+        name = str(name); rot_or_pos = str(rot_or_pos)
+        # get all rigid body data if name starts with RigidBody_OI and not a marker
+        _type = None
+        if name.startswith('Unlabeled'): 
+            _type = 'mk'
+        if any(name.startswith(rb) for rb in RigidBody_OI) and 'Marker' not in name:
+            _type = 'rb'
+        if any(name.startswith(ms) for ms in MarkerSet_OI) and 'Bone' not in name and ':Markerset' not in name:
+            _type = 'ms'
+        if _type is None:
+            continue
+        
+        if _clms[_type].get(name) is None:
+            _clms[_type][name] = {}
+        if _type == 'rb' and rot_or_pos == 'Rotation':
+            XYZwzyz = XYZwzyz.lower()
+            
+        _clms[_type][name][XYZwzyz] = index
+        
+        
+    return _clms
+
+
+def _get_data_of_interest(_data: pd.DataFrame, _clms: dict, _params: dict) -> dict:
+    '''
+    This function is used to get the data of interest
+    input = _data: pandas dataframe
+            _clms: dictionary of columns
+    output = _DOI: dictionary of data of interest
+    '''
+    
+    
+    _DOI = {"rb": {}, "mk": {}, "ms": {}, "times": None}
+
+    times_data = _data.iloc[:, _clms["times"]].to_frame()
+    times_data.columns = ['Time']
+    _DOI["times"] = times_data
+
+    # Process bodies
+    for key in _DOI.keys():
+        if key == 'times':
+            continue
+        _DOI[key] = _sort_data(_data, _clms[key], _params[key]['dof'])
+
+    return _DOI
+
+
+def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, _params: dict) -> dict:
+    '''
+    This function is used to get the data dictionary
+    input = csv_path: str
+            RigidBody_OI: list of rigid bodies
+    output = DOI_dict: dictionary of data of interest
+            FPS: int'''
+
+    data, FPS = _pre_process(csv_path)
+    name_index = data[data.iloc[:, 1].str.contains('Name', case=False, na=False)].index.to_numpy()
+
+    row1_Name = data.iloc[name_index].values[0] # Name of Object of Interest
+    row2_Rot_Pos = data.iloc[name_index + 1].values[0] # Rotation or Position
+    row3_TxyzQwxyz = data.iloc[name_index + 2].values[0] # X/Y/Z/w/x/y/z
+
+
+    items_dict = _get_items_of_interest(row1_Name, row2_Rot_Pos, row3_TxyzQwxyz, RigidBody_OI, MarkerSet_OI)
+    data = data.drop([0,1,2,3]).reset_index(drop=True)
+    DOI_dict = _get_data_of_interest(data, items_dict, _params)
+
+    # Collect all invalid row indices
+    invalid_rows = set()
+    for _rb_name in DOI_dict['rb']:
+        invalid_rows.update(_get_invalid_rows(DOI_dict['rb'][_rb_name]))
+        
+    # Drop invalid rows from all DataFrames
+    DOI_dict = _drop_invalid_rows(DOI_dict, invalid_rows)
+    
+    return DOI_dict, FPS
+
+
+
+def _get_item_dict_wrt_frame(DOI_dict: dict, REF_FRAME: int, type) -> dict:
+    '''
+    This function is used to get the item dictionary at a specific frame
+    '''
+    
+    item_to_filter_dict = {name: DOI_dict[type][name].iloc[REF_FRAME].dropna().values 
+                    for name in DOI_dict[type] 
+                    if not DOI_dict[type][name].iloc[REF_FRAME].isna().any()}
+    
+    return item_to_filter_dict
+
+
 def _get_marker_wrt_item(marker: dict, item_XYZwxyz: list) -> dict:
     '''
     This function is used to get the marker wrt item
@@ -134,157 +300,7 @@ def _get_marker_wrt_item(marker: dict, item_XYZwxyz: list) -> dict:
     return unlabel_vector
 
 
-def _get_data_dictionary(csv_path: str, RigidBody_OI: list) -> dict:
-    '''
-    This function is used to get the data dictionary
-    input = csv_path: str
-            RigidBody_OI: list of rigid bodies
-    output = DOI_dict: dictionary of data of interest
-            FPS: int'''
-
-    data, FPS = _pre_process(csv_path)
-
-    row1_Name = data.iloc[0,:].values # Name of Object of Interest
-    row2_Rot_Pos = data.iloc[1,:].values # Rotation or Position
-    row3_TxyzQwxyz = data.iloc[2].values # X/Y/Z/w/x/y/z
-
-    items_dict = _get_items_of_interest(row1_Name, row2_Rot_Pos, row3_TxyzQwxyz, RigidBody_OI)
-    data = data.drop([0,1,2]).reset_index(drop=True)
-    DOI_dict = _get_data_of_interest(data, items_dict)
-
-    # Collect all invalid row indices
-    invalid_rows = set()
-    for _rb_name in DOI_dict['rb']:
-        invalid_rows.update(_get_invalid_rows(DOI_dict['rb'][_rb_name]))
-        
-        
-    # Drop invalid rows from all DataFrames
-    for key in DOI_dict['rb']:
-        DOI_dict['rb'][key] = DOI_dict['rb'][key].drop(invalid_rows).reset_index(drop=True)
-
-    for key in DOI_dict['mk']:
-        DOI_dict['mk'][key] = DOI_dict['mk'][key].drop(invalid_rows).reset_index(drop=True)
-
-    DOI_dict['times'] = DOI_dict['times'].drop(invalid_rows).reset_index(drop=True)
-    
-    return DOI_dict, FPS
-
-
-def _pre_process(csv_path:str) -> tuple[pd.DataFrame, str]:
-    '''
-    This function is used to pre-process the data
-    input = csv_path: str
-    output = _data: pandas dataframe
-            FPS: str
-    '''
-    
-    _data = pd.read_csv(csv_path)
-    FPS = _data.columns[7]
-    _data = _data.reset_index(drop=False)
-    indices_drop = [0, 2]
-    _data = _data.drop(indices_drop).reset_index(drop=True)
-    return _data, FPS 
-
-
-
-
-def _get_items_of_interest(Names:np.ndarray, Rot_Pos:np.ndarray, TxyzQwxyz:np.ndarray, RigidBody_OI: list) -> dict:
-    '''
-    This function is used to get the items of interest
-    input = Names: of the items
-            Rot_Pos: Rotation or Position information
-            TxyzQwxyz: Rotation and Position values
-            RigidBody_OI: list of rigid bodies
-    output = _clms: dictionary of columns
-    '''
-    
-    
-    _clms = {"rb": {}, "mk": {}, "times":1} # {"rb": {"name": {"X":,... "w":,..}}, "mk": {"name": {"X":, "Y":, "Z": }}}
-
-    for index, (name , rot_or_pos, XYZwzyz) in enumerate(zip(Names, Rot_Pos, TxyzQwxyz)):
-        name = str(name); rot_or_pos = str(rot_or_pos)
-        # get all rigid body data if name starts with RigidBody_OI and not a marker
-        _type = None
-        if name.startswith('Unlabeled'): 
-            _type = 'mk'
-        if any(name.startswith(rb) for rb in RigidBody_OI) and 'Marker' not in name:
-            _type = 'rb'
-        if _type is None:
-            continue
-        
-        if _clms[_type].get(name) is None:
-            _clms[_type][name] = {}
-        if _type == 'rb' and rot_or_pos == 'Rotation':
-            XYZwzyz = XYZwzyz.lower()
-            
-        _clms[_type][name][XYZwzyz] = index
-        
-        
-    return _clms
-
-
-def _get_data_of_interest(_data: pd.DataFrame, _clms: dict) -> dict:
-    '''
-    This function is used to get the data of interest
-    input = _data: pandas dataframe
-            _clms: dictionary of columns
-    output = _DOI: dictionary of data of interest
-    '''
-    
-    
-    _DOI = {"rb": {}, "mk": {}, "times": None}
-
-    rb_order = ['X', 'Y', 'Z', 'w', 'x', 'y', 'z']
-    mk_order = ['X', 'Y', 'Z']
-    
-    times_data = _data.iloc[:, _clms["times"]].to_frame()
-    times_data.columns = ['Time']
-    _DOI["times"] = times_data
-    
-    # Process rigid bodies
-    for rb_name, indices in _clms["rb"].items():
-        sorted_indices = [indices[key] for key in rb_order]
-        rb_data = _data.iloc[:, sorted_indices]
-        #convert rb_data to float
-        rb_data = rb_data.astype(float)
-        rb_data.columns = [key for key in rb_order]
-        _DOI["rb"][rb_name.split('_')[0]] = rb_data
-    
-    # Process markers
-    for mk_name, indices in _clms["mk"].items():
-        sorted_indices = [indices[key] for key in mk_order]
-        mk_data = _data.iloc[:, sorted_indices]
-        #convert mk_data to float
-        mk_data = mk_data.astype(float)
-        mk_data.columns = [key for key in mk_order]
-        _DOI["mk"][mk_name] = mk_data
-
-    return _DOI
-
-def _get_invalid_rows(data_frame: pd.DataFrame) -> pd.Index:
-    """
-    Identifies rows with NaN, Inf, or empty values in the DataFrame.
-    """
-    invalid_rows = data_frame.isnull().any(axis=1) | data_frame.isin([np.inf, -np.inf]).any(axis=1) | data_frame.isin([""]).any(axis=1)
-    return data_frame[invalid_rows].index
-
-def _is_mk_within_box(marker: tuple[3], center: tuple[3], tolerance: tuple[3]) -> bool:
-    '''This function is used to check if the marker is within the box'''
-    return all(abs(marker[i] - center[i]) <= tolerance[i] for i in range(3))
-
-def _get_marker_dict(DOI_dict: dict, REF_FRAME: int) -> dict:
-    '''
-    This function is used to get the marker dictionary
-    '''
-    
-    mk_to_filter_dict = {name: DOI_dict['mk'][name].iloc[REF_FRAME].dropna().values 
-                    for name in DOI_dict['mk'] 
-                    if not DOI_dict['mk'][name].iloc[REF_FRAME].isna().any()}
-    
-    return mk_to_filter_dict
-
-
-def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, cross_ref_limit: int) -> list:
+def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, MarkerSet_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, cross_ref_limit: int, _params: dict) -> list:
     '''
     This function is used to get the vector per file
     '''
@@ -296,9 +312,9 @@ def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, Body_type: str, 
             
             csv_path = os.path.join(dir_path, file)
 
-            DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI)
+            DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI, MarkerSet_OI, _params)
 
-            mk_to_filter_dict = _get_marker_dict(DOI_dict, REF_FRAME)
+            mk_to_filter_dict = _get_item_dict_wrt_frame(DOI_dict, REF_FRAME, 'mk')
             
             item_pos = DOI_dict[Body_type][Body_OI].iloc[REF_FRAME].dropna().values
             
@@ -311,12 +327,12 @@ def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, Body_type: str, 
     print(f"Files used: {files_used}")
     return dicts
 
-def _get_sheet_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, 
-                      REF_FRAME: int, tolerance: list, cross_ref_limit: int) -> dict:
+def _get_sheet_marker_limit(dir_path: str, RigidBody_OI: list, MarkerSet_OI: list,Body_type: str, Body_OI: str, 
+                      REF_FRAME: int, tolerance: list, cross_ref_limit: int, _params: dict) -> dict:
     '''
     This function is used to get the marker limit for the chisel task
     '''
-    dicts = _get_V_wrt_Item_per_file(dir_path, RigidBody_OI, Body_type, Body_OI, REF_FRAME, cross_ref_limit)
+    dicts = _get_V_wrt_Item_per_file(dir_path, RigidBody_OI, MarkerSet_OI, Body_type, Body_OI, REF_FRAME, cross_ref_limit, _params)
     
     similar_keys = find_similar_values_across_all(dicts, tolerance)
     similar_vectors = [key for key in similar_keys.keys()]
@@ -333,16 +349,14 @@ def _get_object_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, 
     This function is used to get the marker limit of objects for the chisel task
     '''
     dicts = _get_V_wrt_Item_per_file(dir_path, RigidBody_OI, Body_type, Body_OI, REF_FRAME, cross_ref_limit)
-    
     similar_keys = find_similar_values_across_all(dicts, tolerance)
-    
     marker_limit = {"names": marker_label, "pos": [key for key in similar_keys.keys()], "tolerance": tolerance}
     
     return marker_limit
 
 def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
     # Construct mk_to_filter_dict
-    mk_to_filter_dict = _get_marker_dict(DOI_dict, REF_FRAME)
+    mk_to_filter_dict = _get_item_dict_wrt_frame(DOI_dict, REF_FRAME, 'mk')
     
     # Initialize a set to hold all concatenated filter labels
     filter_labels_combined = {}
@@ -380,37 +394,48 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
     This function is used to get the cleaned dataframe
     Changing to robodk frame First time for the rigid body and markers'''
     
+    Marker_OI = {
+    'A1': 'sheet_aug12:Marker 002',
+    'A2': 'sheet_aug12:Marker 017',
+    'A3': 'sheet_aug12:Marker 020',
+    'A4': 'sheet_aug12:Marker 027',
+    'B1': 'sheet_aug12:Marker 025',
+    'B2': 'sheet_aug12:Marker 023',
+    'B3': 'sheet_aug12:Marker 022',
+    'B4': 'sheet_aug12:Marker 011',
+    'C1': 'sheet_aug12:Marker 0010',
+    'C2': 'sheet_aug12:Marker 008',
+    'C3': 'sheet_aug12:Marker 015',
+    'C4': 'sheet_aug12:Marker 005',
+    'D1': 'sheet_aug12:FKA-sheet_aug12_Marker 001',
+    'D2': 'sheet_aug12:FKA-sheet_aug12_Marker 003',
+    'D3': 'sheet_aug12:FKA-sheet_aug12_FKA-sheet_aug12_Marker 0010',
+    'D4': 'sheet_aug12:FKA-sheet_aug12_FKA-sheet_aug12_Marker 006'
+}
+    
     df = pd.concat(
-        [DOI_dict["times"]] +
-        [_df.rename_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
-        [_df.rename_columns_with_prefix(DOI_dict["mk"][name], name) for name in DOI_dict["mk"] if name in Marker_OI],
+        [pd.DataFrame(DOI_dict["times"])] +
+        [_df.rename_rb_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
+        [_df.rename_ms_columns_with_prefix(DOI_dict["ms"][name], key) for key, name in Marker_OI.items() if name in DOI_dict["ms"]],
         axis=1
     )
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['RigidBody']['len'] + ["Marker"] * len(Marker_OI) * _params['Marker']['len'])
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['rb']['len'] + ["Marker"] * len(Marker_OI) * _params['ms']['len'])
     
-    # # Filter columns
-    # filtered_columns_rigid = [col for col in df.columns if any(keyword in col for keyword in RigidBody_OI)]
-    # # Create new DataFrame with filtered columns
-    # rigid_data = df[filtered_columns_rigid]
-    # # Step 1: Identify rows with NaN values
-    # nan_rows_rigid = rigid_data.isna().any(axis=1)
-    # # Step 2: Get indexes of rows with NaN values
-    # indexes_with_nan = nan_rows_rigid[nan_rows_rigid].index.to_list()
-    # df = df.drop(indexes_with_nan)
-    # df = df.reset_index(drop=True)
-
+    
     _HEADER_ROW = df.columns
     add_row = pd.DataFrame([pd.Series(["FPS", FPS] + [0] * (len(df.columns) - 2), index=df.columns, dtype=str)], columns=df.columns)
 
     ######## ADDING THE ITEM ROW TO THE DATAFRAME ########
     item_row = pd.DataFrame(np.reshape(_HEADER_ROW, (1, -1)), columns=df.columns)
-    combined_set = RigidBody_OI + Marker_OI
+    combined_set = RigidBody_OI + list(Marker_OI.keys())
 
     for rb in combined_set:
-        rb_columns = [col for col in df.columns if col.startswith(rb)]
+        rb_columns = [col for col in df.columns if col.startswith(rb+'_')]
+        # print(rb_columns)
         if len(rb_columns) == 3:
             df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, df[rb_columns].values.astype(float))
         else:
+            # print(f"Rigid body {rb_columns} has {len(rb_columns)} columns")
             df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_rigidbody, 1, df[rb_columns].values.astype(float))
             
     df = pd.concat([df.iloc[:0], add_row, item_row, df.iloc[0:]], ignore_index=True) ## add_row is the FPS row and item_row is the header row
@@ -433,7 +458,7 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
 ########################################################################################
 ####### MAIN FUNCTION BELLOW ##########################################################
 
-def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: dict, REF_FRAME: int, MOIs: dict) -> None:
+def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: dict, REF_FRAME: int, MOIs: dict | None) -> None:
     '''
     dir_path: str
         path to the csv files
@@ -445,23 +470,26 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
     '''
     save_file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
 
-    DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'])
-
-    filter_labels = _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, OI['Marker'])
+    DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'], OI['Marker'], _params)
     
-    # Create a set of keys to remove
-    keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
+    if MOIs is not None:
 
-    # Update the dictionary with new keys and remove extra keys in one go
-    for new_key, old_key in filter_labels.items():
-        if old_key in DOI_dict['mk']:
-            # print(f"Old key: {old_key}, New key: {new_key}")
-            DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+        filter_labels = _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, OI['Marker'])
+        
+        # Create a set of keys to remove
+        keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
 
-    # Remove the extra keys
-    for key in keys_to_remove:
-        # print(f"Removing extra key: {key}")
-        DOI_dict['mk'].pop(key)
+        # Update the dictionary with new keys and remove extra keys in one go
+        for new_key, old_key in filter_labels.items():
+            if old_key in DOI_dict['mk']:
+                # print(f"Old key: {old_key}, New key: {new_key}")
+                DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+
+        # Remove the extra keys
+        for key in keys_to_remove:
+            # print(f"Removing extra key: {key}")
+            DOI_dict['mk'].pop(key)
+            
     print("File path: ", save_file)
     
     _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)

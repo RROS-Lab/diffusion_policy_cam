@@ -22,10 +22,12 @@ battery = data.get_rigid_TxyzRxyz()['battery']
 battery0 = battery[0]
 stop_index = rri.get_battery_stop_index(data, START_FRAME, thresehold=0.1)
 marker = data.get_marker_Txyz()['A1']
+start_marker = marker[0]
 loss = []
+
 for T ,(markT, batT) in enumerate(zip(marker[:stop_index], battery[:stop_index])):
     if T > 0:
-        cal_markT = rri.calculate_new_marker_pos(markT, battery0, batT)
+        cal_markT = rri.calculate_new_marker_pos(start_marker, battery0, batT)
         loss.append(nn.functional.mse_loss(torch.tensor(cal_markT), torch.tensor(markT)))
 
-print(np.mean(loss))
+print(len(loss))

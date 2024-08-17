@@ -1,9 +1,10 @@
 import pandas as pd
-# import submodules.robomath_addon as rma
 import submodules.robomath_addon as rma
+# from submodules import robomath_addon as rma
+# import robomath_addon as rma
 import numpy as np
-# import submodules.data_filter as _df
 import submodules.data_filter as _df
+# import data_filter as _df
 from typing import Union
 import csv
 
@@ -207,9 +208,10 @@ class DataParser:
             writer.writerow(_HEADER_ROW)
             writer.writerows(_transformed_data)
 
+
+
     @classmethod
     def from_euler_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
-
         return DataParser(file_path, 'EULER', target_fps, filter, window_size, polyorder)
     
 
@@ -219,7 +221,7 @@ class DataParser:
         return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
     
 
-    def __init__(self, file_path, file_type: Union['QUAT', 'EULER'], target_fps: float, 
+    def __init__(self, file_path, file_type: Union["QUAT", "EULER"], target_fps: float, 
                  filter: bool = False, window_size: int = 15, polyorder: int = 3):
         
         self.data = process_data(pd.read_csv(file_path), target_fps, filter, window_size, polyorder)

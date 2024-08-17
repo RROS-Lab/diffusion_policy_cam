@@ -1,10 +1,10 @@
-import cleaned_file_parser as cfp
-import data_filter as _df
+import submodules.cleaned_file_parser as cfp
+import submodules.data_filter as _df
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-import robomath_addon as rma
-import robomath as rm
+import submodules.robomath_addon as rma
+import submodules.robomath as rm
 from scipy.signal import savgol_filter #apply sg filter
 
 START_FRAME = 0
@@ -38,7 +38,7 @@ def plot_battery_motion(ax, data, stop_index):
 def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_Bt: list[6]) -> list[3]:
     '''
     Calculate the new marker position in the world frame at time t
-    W_V0: Marker position wrt Battery at time 0
+    W_V0: Marker position wrt World at time 0
     W_TxyzRxyz_B0: Battery pose at time 0
     W_TxyzRxyz_Bt: Battery pose at time t
     ----------------
@@ -50,6 +50,23 @@ def calculate_new_marker_pos(W_V0: list[3], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_B
     B_T_W = rm.invH(W_T_B)
     W_V = rma.Vxyz_wrt_Pose(B_V, B_T_W) # Marker position wrt World at time t (in world frame)
     return W_V
+    
+    
+
+def calculate_new_mb_pos(W_TxyzRxyz_mb0: list[6], W_TxyzRxyz_B0: list[6], W_TxyzRxyz_Bt: list[6]) -> list[3]:
+    '''
+    Calculate the new marker position in the world frame at time t
+    W_TxyzRxyz_I0: Rigid Body position wrt World at time 0
+    W_TxyzRxyz_B0: Battery pose at time 0
+    W_TxyzRxyz_Bt: Battery pose at time t
+    ----------------
+    Returns: Marker position wrt World at time t
+    '''
+    B0_T_mb0 = rma.BxyzRxyz_wrt_AxyzRxyz(W_TxyzRxyz_mb0, W_TxyzRxyz_B0) # Rigid Body position wrt Battery at time 0
+    B_T_mb = B0_T_mb0 # Marker position wrt Battery at time t is considered same as time 0 as the marker is rigidly attached to the battery
+    W_T_B = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_Bt)
+    W_T_mb = W_T_B*B_T_mb # Marker Body position wrt World at time t (in world frame)
+    return W_T_mb
     
 
 if __name__ == "__main__":

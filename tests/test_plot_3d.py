@@ -99,8 +99,8 @@ if __name__ == "__main__":
     # read_path = write_path # test read
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-    base_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_Aug_6/cleaned_traj'
-    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_Aug_6/plots_cleaned'
+    base_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug_12/test_traj'
+    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug_12/test_traj_video'
     
     cleaned_file_names = os.listdir(base_dir)
     # cleaned_file_names = ['cap_056_cleaned.csv']
@@ -118,8 +118,8 @@ if __name__ == "__main__":
         # data.save_2_csv(file_path=write_path, save_type='EULER')
         try:
             get_visualization(data=data,
-                            save_path=os.path.join(save_dir, file_name + '.png'),
-                            video=False)
+                            save_path=os.path.join(save_dir, file_name + '.mp4'),
+                            video=True)
             
         except Exception as e:
             print(f'file: {file_name} failed with error: \n\n{e}')
