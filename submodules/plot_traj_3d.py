@@ -53,17 +53,17 @@ class PlotTraj3D(object):
         self.subplots.append(_params)
         return _ax
 
-    @classmethod
-    def plot_path(cls, ax, path: np.ndarray) -> None:
+    @staticmethod
+    def plot_path(ax, path: np.ndarray) -> None:
         return ax.plot(path[:, 0], path[:, 1], path[:, 2])
 
-    @classmethod
-    def plot_nodes(cls, ax, nodes: np.ndarray) -> None:
+    @staticmethod
+    def plot_nodes(ax, nodes: np.ndarray) -> None:
         return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
 
     
-    @classmethod
-    def plot_coordinate_frame(cls, ax, XYZwxyz: np.ndarray[7], size:float=0.1, linewidth:float=1) -> None:
+    @staticmethod
+    def plot_coordinate_frame(ax, XYZwxyz: np.ndarray[7], size:float=0.1, linewidth:float=1) -> None:
         #frame is position + quaternion of size 7
         position = XYZwxyz[0:3]
         quaternion = XYZwxyz[3:]
@@ -80,13 +80,13 @@ class PlotTraj3D(object):
         return quivers
     
 
-    @classmethod
-    def plot_geometric_path(cls, ax, geometric_path: np.ndarray[np.ndarray[7]], size:float=0.1, linewidth:float=1) -> None:
+    @staticmethod
+    def plot_geometric_path(ax, geometric_path: np.ndarray[np.ndarray[7]], size:float=0.1, linewidth:float=1) -> None:
         for frame in geometric_path:
-            cls.plot_coordinate_frame(ax, frame, size, linewidth)
+            PlotTraj3D.plot_coordinate_frame(ax, frame, size, linewidth)
 
-    @classmethod
-    def plot_motion_xyz(cls, ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
+    @staticmethod
+    def plot_motion_xyz(ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
         ax.grid(True)
         ax.set_facecolor('lightgray')
         ax.set_title('Path')
@@ -95,8 +95,8 @@ class PlotTraj3D(object):
         ax.plot(geometric_path[:, 2], color='green')
         ax.legend(['X', 'Y', 'Z'])
 
-    @classmethod
-    def plot_motion_rpy(cls, ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
+    @staticmethod
+    def plot_motion_rpy(ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
         ax.grid(True)
         ax.set_facecolor('lightgray')
 
@@ -110,8 +110,8 @@ class PlotTraj3D(object):
         ax.plot(euler_path[:, 5], color='brown')
         ax.legend(['Y', 'P', 'R'])
 
-    @classmethod
-    def plot_motion_quat(cls, ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
+    @staticmethod
+    def plot_motion_quat(ax: plt.Axes, geometric_path: np.ndarray[np.ndarray[7]]) -> None:
         ax.grid(True)
         ax.set_facecolor('lightgray')
         ax.set_title('Quaternion')
@@ -122,26 +122,26 @@ class PlotTraj3D(object):
         ax.legend(['w', 'x', 'y', 'z'])
 
     
-    @classmethod
-    def plot_single_traj(cls, ax1, ax2, ax3, ax4, 
-                         traj: np.ndarray[np.ndarray[7]], density:int=10) -> None:
+    @staticmethod
+    def plot_single_traj(ax1, ax2, ax3, ax4, 
+                         traj: np.ndarray[np.ndarray[7]], density:int=10, _qsize = 0.03) -> None:
         
         path = traj[:, 0:3]
         # nodes and frames are equally spaced points on the path
         nodes = path[::density]
         frames = traj[::density]
         if ax1:
-            cls.plot_path(ax1, path)
-            cls.plot_nodes(ax1, nodes)
-            cls.plot_geometric_path(ax1, frames, size=0.03, linewidth=1)
+            PlotTraj3D.plot_path(ax1, path)
+            PlotTraj3D.plot_nodes(ax1, nodes)
+            PlotTraj3D.plot_geometric_path(ax1, frames, size=_qsize, linewidth=1)
         
-        if ax2: cls.plot_motion_xyz(ax2, traj)
-        if ax3: cls.plot_motion_rpy(ax3, traj)
-        if ax4: cls.plot_motion_quat(ax4, traj)
+        if ax2: PlotTraj3D.plot_motion_xyz(ax2, traj)
+        if ax3: PlotTraj3D.plot_motion_rpy(ax3, traj)
+        if ax4: PlotTraj3D.plot_motion_quat(ax4, traj)
 
 
-    @classmethod
-    def set_3D_plot_axis_limits(cls, ax, all_points) -> None:
+    @staticmethod
+    def set_3D_plot_axis_limits(ax, all_points) -> None:
         # Calculate the limits for the plot based on the geometric path
         minX = np.min(all_points[:, 0]); maxX = np.max(all_points[:, 0]); delta_X = maxX - minX
         minY = np.min(all_points[:, 1]); maxY = np.max(all_points[:, 1]); delta_Y = maxY - minY

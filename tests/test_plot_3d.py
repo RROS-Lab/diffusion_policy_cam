@@ -10,21 +10,15 @@ from matplotlib import pyplot as plt
 # from submodules.trajectory_animator import TrajectoryAnimator
 
 def get_visualization(data, save_path=None, video=False):
-    
-
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
-
     rigid_bodies_dict = data.get_rigid_TxyzQwxyz()
     markers_dict = data.get_marker_Txyz()
-
-
 
     plot = PlotTraj3D(fig_size=(10,7))
     plot.fig.tight_layout(pad=3.0)
     
     rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies if rb != 'battery']
     markers  = [markers_dict[mk] for mk in data.markers]
-
 
     intial_markers = [_mk[0] for _mk in markers]
 
@@ -43,22 +37,12 @@ def get_visualization(data, save_path=None, video=False):
     # ax4 = plot.add_subplot(r=4,c=4,i=9)
     ax4 = None
 
-    #side plot Chisel trajectory
-    # plot.plot_single_traj(None, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
-    
-    
-
     ax5 = plot.add_subplot(r=4,c=4,i=9)
     ax5.set_title('Gripper Trajectory')
     ax6 = plot.add_subplot(r=4,c=4,i=13)
     # ax7 = plot.add_subplot(r=3,c=4,i=10)
     ax7 = None
 
-    #side plot Gripper trajectory
-    # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
-
-    
-    
     #plot intial battery markers
     if not video:
         plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
@@ -106,7 +90,7 @@ if __name__ == "__main__":
     base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'
     save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/plots'
     
-    cleaned_file_names = os.listdir(base_dir).sort()
+    cleaned_file_names = sorted(os.listdir(base_dir))
     
     STOP_FLAG = 1
 

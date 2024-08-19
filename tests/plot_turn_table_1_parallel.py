@@ -33,7 +33,6 @@ def get_visualization(data, save_path=None, video=False):
     rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies]
     markers  = [markers_dict[mk] for mk in data.markers]
     
-
     intial_markers = [_mk[0] for _mk in markers]
 
 
@@ -78,16 +77,16 @@ def get_visualization(data, save_path=None, video=False):
     
     #plot intial battery markers
     if not video:
-        plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
-        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
-        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100)
-        plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100)
+        plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100, _qsize = 0.07)
+        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100, _qsize = 0.07)
+        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100, _qsize = 0.07)
+        plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100, _qsize = 0.07)
 
         plot.plot_nodes(ax1, nodes=np.array(intial_markers))
         
     
     if video:
-        time_stamps = data.get_time() if TIME_STAMPS else time_stamps = np.array([])
+        time_stamps = data.get_time() if TIME_STAMPS else np.array([])
         ani = plot.animate_multiple_trajectories(ax=ax1,
                                                  list_trajectories=[*rigid_bodies, *markers],
                                                  time_data = time_stamps, # add this line if timer needed or else comment it out
@@ -112,16 +111,16 @@ def read_file_and_visualize(file_path, save_path):
     _file_name = os.path.basename(file_path)
     data = cfp.DataParser.from_quat_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
     get_visualization(data=data,
-                        save_path=os.path.join(save_path), video=MAKE_VIDEO
-                        # save_path=None, video=True
-                        )
+                      save_path=os.path.join(save_path), video=MAKE_VIDEO
+                      # save_path=None, video=True
+                      )
 
 # ------ Hard Coded for now ------
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'
-    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/videos'
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/csvs'
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
     cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names
@@ -164,5 +163,4 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
 
 if __name__ == "__main__":
     _suffix = "interpolate" if INTERPOLATE else ""
-    main(max_workers = 1, STOP_FLAG=1, suffix=_suffix, parallelize = True)
-
+    main(max_workers = 1, STOP_FLAG=1, suffix=_suffix, parallelize = False)
