@@ -103,8 +103,8 @@ if __name__ == "__main__":
 
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-    base_dir = './diffusion_pipline/data_chisel_task/fixing_markers'
-    save_dir = './diffusion_pipline/data_chisel_task/fixing_markers'
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/plots'
     
     cleaned_file_names = os.listdir(base_dir)
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         
         print(file_name)
         read_path = os.path.join(base_dir, file_name)
-        data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
+        data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
         file_name = read_path.split('/')[-1].split('.')[0]
 
         # data.save_2_csv(file_path=write_path, save_type='EULER')

@@ -9,27 +9,35 @@ from matplotlib import pyplot as plt
 import concurrent.futures
 import submodules.cleaned_file_parser as cfp
 import warnings
+import submodules.nan_interpolation as ni
 
 warnings.filterwarnings("ignore")
 # from submodules.trajectory_animator import TrajectoryAnimator
+FILE_READ_FPS = 30.0
+VIDEO_WRITE_FPS = 30.0
+
+INTERPOLATE = False
+
 
 def get_visualization(data, save_path=None, video=False):
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
 
     rigid_bodies_dict = data.get_rigid_TxyzQwxyz()
-    markers_dict = data.get_marker_Txyz()
 
-
-
-    plot = PlotTraj3D(fig_size=(10,7))
-    plot.fig.tight_layout(pad=3.0)
+    global INTERPOLATE
+    markers_dict = data.get_marker_Txyz(interpolate=INTERPOLATE)
     
     # rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies if rb != 'battery']
     rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies]
     markers  = [markers_dict[mk] for mk in data.markers]
-
+    # time_stamps = data.get_time()
+    time_stamps = np.array([])
 
     intial_markers = [_mk[0] for _mk in markers]
+
+
+    plot = PlotTraj3D(fig_size=(10,7))
+    plot.fig.tight_layout(pad=3.0)
 
     ax1 = plot.add_subplot(r=1,c=1,i=1, 
                            projection='3d',title='3D Spline Trajectory', lables=['X', 'Y', 'Z'])
@@ -39,6 +47,7 @@ def get_visualization(data, save_path=None, video=False):
                                  *markers], axis=0)
     
     plot.set_3D_plot_axis_limits(ax1, ALL_POINTS)
+
 
     ax2 = plot.add_subplot(r=4,c=4,i=1)
     ax2.set_title('Chisel Trajectory')
@@ -60,6 +69,10 @@ def get_visualization(data, save_path=None, video=False):
     #side plot Gripper trajectory
     # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
 
+    ax8 = plot.add_subplot(r=4,c=4,i=4)
+    ax8.set_title('Helmet Trajectory')
+    ax9 = plot.add_subplot(r=4,c=4,i=8)
+    ax10 = None
     
     
     #plot intial battery markers
@@ -67,12 +80,15 @@ def get_visualization(data, save_path=None, video=False):
         plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
         plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
         plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100)
+        plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100)
+
         plot.plot_nodes(ax1, nodes=np.array(intial_markers))
         
     
     if video:
         ani = plot.animate_multiple_trajectories(ax=ax1,
                                                  list_trajectories=[*rigid_bodies, *markers],
+                                                 time_data = time_stamps, # add this line if timer needed or else comment it out
                                                  interval=50,
                                                  quiver_line_width=2,
                                                  quiver_size=0.07,
@@ -81,7 +97,7 @@ def get_visualization(data, save_path=None, video=False):
     
     if save_path:
         if video:
-            ani.save(save_path, writer='ffmpeg', fps=data.fps)
+            ani.save(save_path, writer='ffmpeg', fps=VIDEO_WRITE_FPS)
         if not video:
             plt.savefig(save_path)
         plt.close()
@@ -90,41 +106,60 @@ def get_visualization(data, save_path=None, video=False):
         plt.show()
         # plt.show()
 
-def process_and_visualize(file_name, base_dir, save_dir):
-    if file_name.split('.')[-1] != 'csv':
-        return
-    
-    read_path = os.path.join(base_dir, file_name)
-    try:
-        data = cfp.DataParser.from_euler_file(file_path=read_path, target_fps=120.0, filter=True, window_size=15, polyorder=3)
-        file_name = read_path.split('/')[-1].split('.')[0]
+def read_file_and_visualize(file_path, save_path):
+    _file_name = os.path.basename(file_path)
+    data = cfp.DataParser.from_quat_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
+    get_visualization(data=data,
+                        save_path=os.path.join(save_path), video=True
+                        # save_path=None, video=True
+                        )
 
-        get_visualization(data=data,
-                          save_path=os.path.join(save_dir, file_name + '.mp4'),
-                          video=True)
-    except Exception as e:
-        print(f'file: {file_name} failed with error: \n\n{e}')
-
-def main():
-    base_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/test_5_noNAN'
-    save_dir = 'no-sync/turn_table_chisel/tilt_25/5_markers_&_9_markers/csvs Aug 6/test_5_noNAN/videos'
+# ------ Hard Coded for now ------
+def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
+    global INTERPOLATE
+    # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'; INTERPOLATE = False
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
-
+    cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names
+    
     # files_not_2_plot = 
+    _SUFFIX = kwargs.get('suffix', '') # suffix to add to the file name w/o extension
+    if _suffix: _SUFFIX = f"_{_suffix}"
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
-        futures = []
+    BOOL_PARALLELIZE = kwargs.get('parallelize', True)
+
+    if BOOL_PARALLELIZE:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for file_name in cleaned_file_names:
+                _file_path = os.path.join(base_dir, file_name)
+                #### add SUFFIX to the file name before saving ####
+                _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' 
+                _save_path = os.path.join(save_dir, _new_file_name)
+
+                print(f"Submitting: {file_name} -> save as: {_new_file_name}")
+                futures.append(executor.submit(read_file_and_visualize, _file_path, _save_path))
+
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f'Error in future: {e}')
+                    raise e
+    
+    if not BOOL_PARALLELIZE:
         for file_name in cleaned_file_names:
-            print(f"Submitting {file_name} for processing")
-            futures.append(executor.submit(process_and_visualize, file_name, base_dir, save_dir))
+            _file_path = os.path.join(base_dir, file_name)
+            #### add SUFFIX to the file name before saving ####
+            _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' 
+            _save_path = os.path.join(save_dir, _new_file_name)
 
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f'Error in future: {e}')
+            print(f"Processing: {file_name} -> save as: {_new_file_name}")
+            read_file_and_visualize(_file_path, _save_path)
 
 if __name__ == "__main__":
-    main()
+    _suffix = "interpolate" if INTERPOLATE else ""
+    main(max_workers = 1, STOP_FLAG=1, suffix=_suffix, parallelize = True)
 

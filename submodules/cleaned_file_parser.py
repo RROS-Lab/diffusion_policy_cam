@@ -6,6 +6,7 @@ import numpy as np
 import submodules.data_filter as _df
 from typing import Union
 import csv
+import submodules.nan_interpolation as ni
 
 def process_data(data :pd.DataFrame,
                  fps: float, filter: bool = False,
@@ -18,7 +19,6 @@ def process_data(data :pd.DataFrame,
     if filter:
         _new_data = _df.apply_savgol_filter(_new_data, window_size, polyorder, time_frame= True)
     return _new_data
-
 
 class DataParser:
     """
@@ -99,19 +99,18 @@ class DataParser:
         for key, value in kwargs.items():
             if key == 'item':
                 return {key: rb_TxyzRxyz[key] for key in value if key in rb_TxyzRxyz}
-    
+            
         return rb_TxyzRxyz
 
 
     # @classmethod
-    def get_marker_Txyz(self, **kwargs) -> dict[str: np.ndarray[np.ndarray[3]]]:
+    def get_marker_Txyz(self, interpolate=False, **kwargs) -> dict[str: np.ndarray[np.ndarray[3]]]:
         """
         Process marker data from a DataFrame.
         
         Args:
-        - data (pd.DataFrame): The input DataFrame containing the data.
-        - markers (list): List of marker names to process.
-        
+        interpolate (bool): If True, interpolate missing marker data.
+
         Returns:
         - dict: Dictionary containing processed marker data for each marker.
         """
@@ -129,6 +128,10 @@ class DataParser:
         for key, value in kwargs.items():
             if key == 'object':
                 return {key: mk_Txyz[key] for key in value if key in mk_Txyz}
+
+        
+        if interpolate:
+            mk_Txyz = ni.interpolate_markers(markers_dict=mk_Txyz, time_stamps=self.get_time())
 
         return mk_Txyz
 

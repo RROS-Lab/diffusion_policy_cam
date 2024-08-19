@@ -10,8 +10,9 @@ class PlotTraj3D(object):
         print("3D_traj_plot.py is being run directly")
         self.fig = plt.figure(figsize=fig_size)
         self.fig.subplots_adjust(left=0.036, bottom=0.042, right=0.98, top=0.96, wspace=0.1, hspace=0.3)
-
         self.subplots = []
+
+        self.ADD_TIMER_FLAG = False
     
     def add_subplot(self, r, c, i, **kwargs):
         ''' 
@@ -214,19 +215,23 @@ class PlotTraj3D(object):
         # all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
         # # Set axis limits based on the collected points
         # self.set_3D_plot_axis_limits(ax, all_points)
-
+        _time_data = kwargs.get('time_data', np.array([]))
+        if _time_data.size > 0:
+            self.ADD_TIMER_FLAG = True
         # Initialize lines for each trajectory, empty at first, with a specific style and label
         _qline_width =  kwargs.get('quiver_line_width', 1)
         _qsize = kwargs.get('quiver_size', 0.1)
         _pline_width = kwargs.get('path_line_width', 0.5)
+        
 
         lines = [ax.plot([], [], [], 'r-', linewidth=_pline_width, label=f'Trajectory {i}')[0] for i, _ in enumerate(list_trajectories)]
-
         # Initialize marker points for each trajectory, empty at first
         points = [ax.plot([], [], [], 'bo')[0] for _ in list_trajectories]
-
         # Create a list of lists for storing quivers associated with each trajectory
         quivers_lists = [[] for _ in list_trajectories]  # Each trajectory can have its own set of quivers
+
+        # Create a text object for time annotation
+        time_text = ax.text2D(0.15, 0.95, '', transform=ax.transAxes, fontsize=14, weight='bold') if self.ADD_TIMER_FLAG else None
 
         def init():
             # Clear line and point data for resetting the plot
@@ -242,7 +247,8 @@ class PlotTraj3D(object):
                 quiver_list.clear()  # Clear the list after removing quivers
 
             # Return a list of all artists that need to be redrawn
-            return lines + points + [item for sublist in quivers_lists for item in sublist]
+            
+            return lines + points + [item for sublist in quivers_lists for item in sublist] + [time_text]
 
         # Define an update function for the animation that gets called at each frame
         def update(num):
@@ -274,7 +280,12 @@ class PlotTraj3D(object):
                 if traj.shape[1] > 3:  # Check for orientation data
                     quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=_qsize, linewidth=_qline_width))
             # Return a list of all artists that need to be redrawn
-            return lines + points + [item for sublist in quivers_lists for item in sublist]
+            
+            # Update the time text
+            if self.ADD_TIMER_FLAG:
+                time_text.set_text(f'Time: {_time_data[num]:.2f} s')
+            
+            return lines + points + [item for sublist in quivers_lists for item in sublist] + [time_text]
 
         ani = FuncAnimation(self.fig, update, frames=len(list_trajectories[0]), init_func=init, blit=False, interval=interval)
         return ani
