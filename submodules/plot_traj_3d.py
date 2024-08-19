@@ -215,6 +215,7 @@ class PlotTraj3D(object):
         # all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
         # # Set axis limits based on the collected points
         # self.set_3D_plot_axis_limits(ax, all_points)
+
         _time_data = kwargs.get('time_data', np.array([]))
         if _time_data.size > 0:
             self.ADD_TIMER_FLAG = True

@@ -106,9 +106,14 @@ if __name__ == "__main__":
     base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'
     save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/plots'
     
-    cleaned_file_names = os.listdir(base_dir)
+    cleaned_file_names = os.listdir(base_dir).sort()
+    
+    STOP_FLAG = 1
 
-    for file_name in cleaned_file_names:
+    for _index, file_name in enumerate(cleaned_file_names):
+        if _index == STOP_FLAG:
+            break
+
         if file_name.split('.')[-1] != 'csv':
             continue
         

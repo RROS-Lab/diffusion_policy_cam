@@ -17,7 +17,9 @@ FILE_READ_FPS = 30.0
 VIDEO_WRITE_FPS = 30.0
 
 INTERPOLATE = False
+MAKE_VIDEO = True
 
+TIME_STAMPS = True
 
 def get_visualization(data, save_path=None, video=False):
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
@@ -30,8 +32,7 @@ def get_visualization(data, save_path=None, video=False):
     # rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies if rb != 'battery']
     rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies]
     markers  = [markers_dict[mk] for mk in data.markers]
-    # time_stamps = data.get_time()
-    time_stamps = np.array([])
+    
 
     intial_markers = [_mk[0] for _mk in markers]
 
@@ -69,9 +70,9 @@ def get_visualization(data, save_path=None, video=False):
     #side plot Gripper trajectory
     # plot.plot_single_traj(None, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100)
 
-    ax8 = plot.add_subplot(r=4,c=4,i=4)
+    ax8 = plot.add_subplot(r=4,c=4,i=12)
     ax8.set_title('Helmet Trajectory')
-    ax9 = plot.add_subplot(r=4,c=4,i=8)
+    ax9 = plot.add_subplot(r=4,c=4,i=16)
     ax10 = None
     
     
@@ -86,6 +87,7 @@ def get_visualization(data, save_path=None, video=False):
         
     
     if video:
+        time_stamps = data.get_time() if TIME_STAMPS else time_stamps = np.array([])
         ani = plot.animate_multiple_trajectories(ax=ax1,
                                                  list_trajectories=[*rigid_bodies, *markers],
                                                  time_data = time_stamps, # add this line if timer needed or else comment it out
@@ -110,7 +112,7 @@ def read_file_and_visualize(file_path, save_path):
     _file_name = os.path.basename(file_path)
     data = cfp.DataParser.from_quat_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
     get_visualization(data=data,
-                        save_path=os.path.join(save_path), video=True
+                        save_path=os.path.join(save_path), video=MAKE_VIDEO
                         # save_path=None, video=True
                         )
 
@@ -118,7 +120,7 @@ def read_file_and_visualize(file_path, save_path):
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'; INTERPOLATE = False
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet/csvs'
     save_dir = 'no-sync/aug14/trimmed_traj_with_helmet/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
@@ -136,7 +138,8 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
             for file_name in cleaned_file_names:
                 _file_path = os.path.join(base_dir, file_name)
                 #### add SUFFIX to the file name before saving ####
-                _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' 
+                _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' if MAKE_VIDEO else f'{os.path.splitext(file_name)[0]}{_SUFFIX}.png'
+
                 _save_path = os.path.join(save_dir, _new_file_name)
 
                 print(f"Submitting: {file_name} -> save as: {_new_file_name}")
@@ -153,7 +156,7 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
         for file_name in cleaned_file_names:
             _file_path = os.path.join(base_dir, file_name)
             #### add SUFFIX to the file name before saving ####
-            _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' 
+            _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' if MAKE_VIDEO else f'{os.path.splitext(file_name)[0]}{_SUFFIX}.png'
             _save_path = os.path.join(save_dir, _new_file_name)
 
             print(f"Processing: {file_name} -> save as: {_new_file_name}")
