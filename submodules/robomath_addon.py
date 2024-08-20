@@ -94,13 +94,13 @@ def motive_2_robodk_rigidbody(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
     Convert motive frame to RoboDK frame.
     """
     X = XYZwxyz[0]; Y = XYZwxyz[1]; Z = XYZwxyz[2]; w = XYZwxyz[3]; x = XYZwxyz[4]; y = XYZwxyz[5]; z = XYZwxyz[6]
-    return [Z, X, Y, w, z, x, y]
+    return [Z/1000, X/1000, Y/1000, w, z, x, y]
 
 def motive_2_robodk_marker(XYZ : Union[list, np.ndarray]) -> np.ndarray:
     """
     Convert motive frame to RoboDK frame.
     """
-    X = XYZ[0]; Y = XYZ[1]; Z = XYZ[2]
+    X = XYZ[0]/1000; Y = XYZ[1]/1000; Z = XYZ[2]/1000
     return [Z, X, Y]
 
 def robodk_2_motive(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:

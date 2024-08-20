@@ -197,9 +197,9 @@ def _get_items_of_interest(Names:np.ndarray, Rot_Pos:np.ndarray, TxyzQwxyz:np.nd
         _type = None
         if name.startswith('Unlabeled'): 
             _type = 'mk'
-        if any(name.startswith(rb) for rb in RigidBody_OI) and 'Marker' not in name:
+        if any(rb in name for rb in RigidBody_OI) and 'Marker' not in name:
             _type = 'rb'
-        if any(name.startswith(ms) for ms in MarkerSet_OI) and 'Bone' not in name and ':Markerset' not in name:
+        if any(ms in name for ms in MarkerSet_OI) and 'Bone' not in name and ':Markerset' not in name:
             _type = 'ms'
         if _type is None:
             continue
@@ -395,24 +395,19 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
     Changing to robodk frame First time for the rigid body and markers'''
     
     Marker_OI = {
-    'A1': 'sheet_aug12:Marker 002',
-    'A2': 'sheet_aug12:Marker 017',
-    'A3': 'sheet_aug12:Marker 020',
-    'A4': 'sheet_aug12:Marker 027',
-    'B1': 'sheet_aug12:Marker 025',
-    'B2': 'sheet_aug12:Marker 023',
-    'B3': 'sheet_aug12:Marker 022',
-    'B4': 'sheet_aug12:Marker 011',
-    'C1': 'sheet_aug12:Marker 0010',
-    'C2': 'sheet_aug12:Marker 008',
-    'C3': 'sheet_aug12:Marker 015',
-    'C4': 'sheet_aug12:Marker 005',
-    'D1': 'sheet_aug12:FKA-sheet_aug12_Marker 001',
-    'D2': 'sheet_aug12:FKA-sheet_aug12_Marker 003',
-    'D3': 'sheet_aug12:FKA-sheet_aug12_FKA-sheet_aug12_Marker 0010',
-    'D4': 'sheet_aug12:FKA-sheet_aug12_FKA-sheet_aug12_Marker 006'
-}
-    
+    "A1": "sheet_aug15:Marker 006",
+    "A2": "sheet_aug15:Marker 007",
+    "A3": "sheet_aug15:Marker 014",
+    "A4": "sheet_aug15:Marker 0010",
+    "B1": "sheet_aug15:Marker 019",
+    "B2": "sheet_aug15:Marker 029",
+    "C1": "sheet_aug15:Marker 036",
+    "C2": "sheet_aug15:Marker 037",
+    "D1": "sheet_aug15:Marker 039",
+    "D2": "sheet_aug15:Marker 040",
+    "D3": "sheet_aug15:Marker 026",
+    "D4": "sheet_aug15:Marker 003"
+}  
     df = pd.concat(
         [pd.DataFrame(DOI_dict["times"])] +
         [_df.rename_rb_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
