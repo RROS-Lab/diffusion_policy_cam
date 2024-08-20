@@ -13,7 +13,7 @@ import submodules.nan_interpolation as ni
 
 warnings.filterwarnings("ignore")
 # from submodules.trajectory_animator import TrajectoryAnimator
-FILE_READ_FPS = 30.0
+FILE_READ_FPS = 60.0
 VIDEO_WRITE_FPS = 30.0
 
 INTERPOLATE = False
@@ -31,8 +31,9 @@ def get_visualization(data, save_path=None, video=False):
     
     # rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies if rb != 'battery']
     rigid_bodies = [rigid_bodies_dict[rb] for rb in data.rigid_bodies]
-    markers  = [markers_dict[mk] for mk in data.markers]
     
+    markers, marker_labels = zip(*[(markers_dict[mk], mk) for mk in data.markers])
+
     intial_markers = [_mk[0] for _mk in markers]
 
 
@@ -58,7 +59,6 @@ def get_visualization(data, save_path=None, video=False):
     #side plot Chisel trajectory
     # plot.plot_single_traj(None, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100)
     
-    
 
     ax5 = plot.add_subplot(r=4,c=4,i=9)
     ax5.set_title('Gripper Trajectory')
@@ -79,16 +79,17 @@ def get_visualization(data, save_path=None, video=False):
     if not video:
         plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100, _qsize = 0.07)
         plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100, _qsize = 0.07)
-        plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100, _qsize = 0.07)
+        # plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100, _qsize = 0.07)
         plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100, _qsize = 0.07)
 
-        plot.plot_nodes(ax1, nodes=np.array(intial_markers))
-        
+        plot.plot_nodes(ax1, nodes=np.array(intial_markers), labels = marker_labels)
     
     if video:
         time_stamps = data.get_time() if TIME_STAMPS else np.array([])
         ani = plot.animate_multiple_trajectories(ax=ax1,
                                                  list_trajectories=[*rigid_bodies, *markers],
+                                                #  dict_trajectories=rigid_bodies_dict,
+                                                #  dict_markers= markers_dict,
                                                  time_data = time_stamps, # add this line if timer needed or else comment it out
                                                  interval=50,
                                                  quiver_line_width=2,

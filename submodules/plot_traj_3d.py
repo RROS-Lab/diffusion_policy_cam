@@ -4,7 +4,7 @@ import submodules.robomath_addon as rma
 import numpy as np
 import pandas as pd
 from matplotlib.animation import FuncAnimation
-
+from typing import Union
 class PlotTraj3D(object):
     def __init__(self, fig_size=(15, 8)):
         print("3D_traj_plot.py is being run directly")
@@ -55,12 +55,22 @@ class PlotTraj3D(object):
 
     @staticmethod
     def plot_path(ax, path: np.ndarray) -> None:
-        return ax.plot(path[:, 0], path[:, 1], path[:, 2])
+        ax.plot(path[:, 0], path[:, 1], path[:, 2])
+
+    # @staticmethod
+    # def plot_nodes(ax, nodes: np.ndarray, **kwargs) -> None:
+    #     labels = kwargs.get('labels', [])
+    #     return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+
 
     @staticmethod
-    def plot_nodes(ax, nodes: np.ndarray) -> None:
-        return ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
-
+    def plot_nodes(ax, nodes: np.ndarray, **kwargs) -> None:
+        labels = kwargs.get('labels', [])
+        scatter = ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], marker='o')
+        # Add text labels
+        for label, (x,y,z) in zip(labels, nodes):
+            ax.text(x,y,z, label, fontsize=9, ha='right')
+        
     
     @staticmethod
     def plot_coordinate_frame(ax, XYZwxyz: np.ndarray[7], size:float=0.1, linewidth:float=1) -> None:
@@ -195,8 +205,17 @@ class PlotTraj3D(object):
         ani = FuncAnimation(self.fig, update, frames=len(traj), init_func=init, blit=False, interval=interval)
         return ani
 
-    def animate_multiple_trajectories(self, ax, list_trajectories: list[np.ndarray], interval: int = 100, **kwargs) -> FuncAnimation:
+    def animate_multiple_trajectories(self, ax, 
+                                      list_trajectories: list[np.ndarray[np.ndarray]],
+                                    #   dict_trajectories: list[np.ndarray],
+                                    #   dict_markers: list[np.ndarray],
+                                      interval: int = 100, **kwargs) -> FuncAnimation:
+        
         """
+        #TODO - add marker labels and trajectory labels
+        #TODO - add left and right side plots for motion data
+        #TODO - add motion vizualization for left and right side plots
+
             Animate multiple 3D trajectories.
 
             Parameters:
@@ -280,11 +299,12 @@ class PlotTraj3D(object):
                 # Add new quivers if orientation data is available
                 if traj.shape[1] > 3:  # Check for orientation data
                     quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=_qsize, linewidth=_qline_width))
+                
             # Return a list of all artists that need to be redrawn
             
             # Update the time text
             if self.ADD_TIMER_FLAG:
-                time_text.set_text(f'Time: {_time_data[num]:.2f} s')
+                time_text.set_text(f'Time: {_time_data[num]:.3f} s')
             
             return lines + points + [item for sublist in quivers_lists for item in sublist] + [time_text]
 
