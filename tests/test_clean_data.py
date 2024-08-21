@@ -93,8 +93,8 @@ Markersheet_OI = [
 REF_FRAME = 100
 
 
-dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/raw_traj_1/'
-save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/trimmed_traj_without_helmet_meters/'
+dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/raw_traj/'
+save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/segmented_data_set/'
 
 # B_MOIs = mfc._get_sheet_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, cross_ref_limit)
 # G_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
@@ -111,7 +111,6 @@ for file in files:
     if file.endswith(".csv"):
         print(file)
         csv_path = os.path.join(dir_path, file)
-        save_file = re.sub(r'\.csv', '_cleaned.csv', file)
-        save_file_path = os.path.join(save_path, save_file)
-
-        mfc.motive_chizel_task_cleaner(csv_path=csv_path, save_path=save_file_path, OI = Oi, _params = _params, REF_FRAME = REF_FRAME, MOIs = None)
+        # save_file = re.sub(r'\.csv', '_cleaned.csv', file)
+        # save_file_path = os.path.join(save_path, save_file)
+        mfc.motive_chizel_task_cleaner(csv_path=csv_path, save_path=save_path, OI = Oi, _params = _params, REF_FRAME = REF_FRAME, MOIs = None)

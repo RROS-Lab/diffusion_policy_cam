@@ -239,7 +239,18 @@ def _get_data_of_interest(_data: pd.DataFrame, _clms: dict, _params: dict) -> di
     return _DOI
 
 
-def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, _params: dict) -> dict:
+
+def get_index(data, column_name, value):
+    # Try to get index for integer value
+    print(f"Value: {value}, Type: {type(value)}")
+    try:
+        return data.index.get_loc(data[data[column_name] == int(value)].index[0])
+    except:
+        # If integer conversion fails, try string value
+        return data.index.get_loc(data[data[column_name] == str(value)].index[0])
+
+
+def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, _params: dict, start:int, end:int) -> dict:
     '''
     This function is used to get the data dictionary
     input = csv_path: str
@@ -257,6 +268,14 @@ def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, 
 
     items_dict = _get_items_of_interest(row1_Name, row2_Rot_Pos, row3_TxyzQwxyz, RigidBody_OI, MarkerSet_OI)
     data = data.drop([0,1,2,3]).reset_index(drop=True)
+    
+
+    start_index = get_index(data, 'level_0', start)
+    end_index = get_index(data, 'level_0', end)
+    
+    print(f"Start Index: {start_index}, End Index: {end_index}")
+        
+    data = data.iloc[start_index:end_index]
     DOI_dict = _get_data_of_interest(data, items_dict, _params)
 
     # Collect all invalid row indices
@@ -387,6 +406,8 @@ def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
         return  # Exit the function
     
     return filter_labels_combined
+   
+   
     
     
 def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
@@ -463,35 +484,57 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
     create a new csv file with the cleaned data in robodk frame
 
     '''
-    save_file = re.sub(r'\.csv', '_cleaned.csv', csv_path)
+    segment_file = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/combined_segments.csv'
 
-    DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'], OI['Marker'], _params)
+    segmet_data = pd.read_csv(segment_file)
     
-    if MOIs is not None:
-
-        filter_labels = _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, OI['Marker'])
+    take =  ((csv_path.split('/')[-1]).split('_')[-1]).split('.')[0]
+    
+    take_data = segmet_data[segmet_data['take'] == int(take)]
+    
+    for i in range(len(take_data)):
         
-        # Create a set of keys to remove
-        keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
+        start = take_data.iloc[i]['start']
+        end = take_data.iloc[i]['end']
+        step = take_data.iloc[i]['step']
+        edge = take_data.iloc[i]['edge']
+        
+        
+        save_file = (re.sub(r'\.csv', f'_edge_{edge}_step_{step}.csv', csv_path)).split('/')[-1]
+    
+        # print(f"Save file: {save_file}")
+        
+        save_file_path = os.path.join(save_path, save_file)
+        
 
-        # Update the dictionary with new keys and remove extra keys in one go
-        for new_key, old_key in filter_labels.items():
-            if old_key in DOI_dict['mk']:
-                # print(f"Old key: {old_key}, New key: {new_key}")
-                DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+        DOI_dict, FPS = _get_data_dictionary(csv_path, OI['RigidBody'], OI['Marker'], _params, start, end)
+        
+        if MOIs is not None:
 
-        # Remove the extra keys
-        for key in keys_to_remove:
-            # print(f"Removing extra key: {key}")
-            DOI_dict['mk'].pop(key)
+            filter_labels = _process_markers(DOI_dict, MOIs, REF_FRAME, save_file_path, OI['Marker'])
             
-    print("File path: ", save_file)
-    
-    _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)
-    
-    if _data is not False:
-        _data.to_csv(f'{save_path}', index=False)
+            # Create a set of keys to remove
+            keys_to_remove = set(DOI_dict['mk'].keys()) - set(filter_labels.values())
+
+            # Update the dictionary with new keys and remove extra keys in one go
+            for new_key, old_key in filter_labels.items():
+                if old_key in DOI_dict['mk']:
+                    # print(f"Old key: {old_key}, New key: {new_key}")
+                    DOI_dict['mk'][new_key] = DOI_dict['mk'].pop(old_key)
+
+            # Remove the extra keys
+            for key in keys_to_remove:
+                # print(f"Removing extra key: {key}")
+                DOI_dict['mk'].pop(key)
+                
+        print("File path: ", save_file)
         
+        _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)
+        
+        if _data is not False:
+            # print(f"Saving file: {save_file_path}")
+            _data.to_csv(f'{save_file_path}', index=False)
+            
 
 # if __name__ == "__main__":
 
