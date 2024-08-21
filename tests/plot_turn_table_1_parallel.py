@@ -17,9 +17,9 @@ FILE_READ_FPS = 30.0
 VIDEO_WRITE_FPS = 30.0
 
 INTERPOLATE = False
-MAKE_VIDEO = True
+MAKE_VIDEO = False
 
-TIME_STAMPS = True
+TIME_STAMPS = False
 
 def get_visualization(data, save_path=None, video=False, **kwargs):
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
@@ -81,7 +81,7 @@ def get_visualization(data, save_path=None, video=False, **kwargs):
         plot.plot_single_traj(ax1, ax2, ax3, ax4, rigid_bodies_dict['chisel'], density=100, _qsize = 0.07)
         plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['gripper'], density=100, _qsize = 0.07)
         # plot.plot_single_traj(ax1, ax5, ax6, ax7, rigid_bodies_dict['battery'], density=100, _qsize = 0.07)
-        plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100, _qsize = 0.07)
+        # plot.plot_single_traj(ax1, ax8, ax9, ax10, rigid_bodies_dict['helmet'], density=100, _qsize = 0.07)
 
         plot.plot_nodes(ax1, nodes=np.array(intial_markers), labels = marker_labels)
     
@@ -114,7 +114,7 @@ def read_file_and_visualize(file_path, save_path, **kwargs):
     COMMENTS = kwargs.get('comments', "")
 
     _file_name = os.path.basename(file_path)
-    data = cfp.DataParser.from_quat_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
+    data = cfp.DataParser.from_euler_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
     get_visualization(data=data,
                       save_path=os.path.join(save_path), video=MAKE_VIDEO,
                       comments=COMMENTS
@@ -125,8 +125,8 @@ def read_file_and_visualize(file_path, save_path, **kwargs):
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/csvs'
-    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/videos'
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/edge_1_step_1/pred/csvs'
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/edge_1_step_1/pred/plots'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
     cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names

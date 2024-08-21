@@ -432,10 +432,10 @@ class PlotTraj3D(object):
                 marker_points[name].set_3d_properties(markers[num:num + 1, 2])
 
             if self.ADD_TIMER_FLAG: 
-                _updated_comments = self._comments + f"\nTime: {_time_data[num]:.3f} s\n"
+                self._comments += f"\nTime: {_time_data[num]:.3f} s\n"
             
-            if _updated_comments:
-                comments_text.set_text(_updated_comments)
+            if self._comments:
+                comments_text.set_text(self._comments)
 
             return (list(traj_lines.values()) + 
                     list(marker_lines.values()) + 
