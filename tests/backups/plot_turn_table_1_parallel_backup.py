@@ -86,16 +86,15 @@ def get_visualization(data, save_path=None, video=False):
     
     if video:
         time_stamps = data.get_time() if TIME_STAMPS else np.array([])
-        ani = plot.animate_trajectories_and_markers(ax=ax1,
-                                                #  list_trajectories=[*rigid_bodies, *markers],
-                                                 dict_trajectories=rigid_bodies_dict,
-                                                 dict_markers= markers_dict,
+        ani = plot.animate_multiple_trajectories(ax=ax1,
+                                                 list_trajectories=[*rigid_bodies, *markers],
+                                                #  dict_trajectories=rigid_bodies_dict,
+                                                #  dict_markers= markers_dict,
                                                  time_data = time_stamps, # add this line if timer needed or else comment it out
                                                  interval=50,
                                                  quiver_line_width=2,
                                                  quiver_size=0.07,
-                                                 path_line_width=0.7,
-                                                 marker_line_width=0.3)
+                                                 path_line_width=0.4)
     
     
     if save_path:
@@ -121,8 +120,8 @@ def read_file_and_visualize(file_path, save_path):
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/test_files/csvs'
-    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/test_files/videos'
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/csvs'
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
     cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names
@@ -165,4 +164,4 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
 
 if __name__ == "__main__":
     _suffix = "interpolate" if INTERPOLATE else ""
-    main(max_workers = 10, STOP_FLAG=10, suffix=_suffix, parallelize = True)
+    main(max_workers = 10, STOP_FLAG=None, suffix=_suffix, parallelize = True)

@@ -17,7 +17,7 @@ class PlotTraj3D(object):
     def add_subplot(self, r, c, i, **kwargs):
         ''' 
         rci -> rows, columns, index \n
-        kwargs -> title, limits, projection, lables \n
+        kwargs -> title, limits, projection, labels \n
         -------------------------------------------\n
         output -> ax\n
         '''
@@ -25,7 +25,7 @@ class PlotTraj3D(object):
         suptitle = kwargs.get('suptitle', "")
         limits = kwargs.get('limits', ())
         projection = kwargs.get('projection', 'rectilinear')
-        lables = kwargs.get('lables', [])
+        labels = kwargs.get('labels', [])
         '''rci -> rows, columns, index'''
         _ax = self.fig.add_subplot(r, c, i, projection=projection)
         _params = {'ax': _ax, 'index': (r, c, i),
@@ -39,11 +39,11 @@ class PlotTraj3D(object):
         if projection == '3d':
             _ax.set_box_aspect([1, 1, 1])
         
-        if lables:
-            _ax.set_xlabel(lables[0])
-            _ax.set_ylabel(lables[1])
+        if labels:
+            _ax.set_xlabel(labels[0])
+            _ax.set_ylabel(labels[1])
             if projection == '3d':
-                _ax.set_zlabel(lables[2])
+                _ax.set_zlabel(labels[2])
         if limits:
             _ax.set_xlim(limits[0])
             _ax.set_ylim(limits[1])
@@ -165,7 +165,7 @@ class PlotTraj3D(object):
     def main(self, traj: np.ndarray[np.ndarray[7]], density:int=10) -> None:
         ax1 = self.add_subplot(121, projection='3d',
                                title='3D Spline Trajectory', 
-                               lables=['X', 'Y', 'Z'])
+                               labels=['X', 'Y', 'Z'])
         
         all_points = traj[:, 0:3]
         self.set_3D_plot_axis_limits(ax1, all_points)
@@ -296,7 +296,7 @@ class PlotTraj3D(object):
                     # Remove the quiver from the plot
                     q.remove()
 
-                # Add new quivers if orientation data is available
+                # Add new quivers if orientation data is availabel
                 if traj.shape[1] > 3:  # Check for orientation data
                     quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=_qsize, linewidth=_qline_width))
                 
@@ -312,3 +312,127 @@ class PlotTraj3D(object):
         return ani
     
 
+    def animate_trajectories_and_markers(self, ax, 
+                                      dict_trajectories: dict[str, np.ndarray[np.ndarray[7]]],
+                                      dict_markers: dict[str, np.ndarray[np.ndarray[3]]],
+                                      interval: int = 100, **kwargs) -> FuncAnimation:
+        
+        """
+        #TODO - add marker labels and trajectory labels
+        #TODO - add left and right side plots for motion data
+        #TODO - add motion vizualization for left and right side plots
+
+            Animate multiple 3D trajectories.
+
+            Parameters:
+            list_trajectories (list[np.ndarray]): A list of 3D trajectories, each represented as a numpy array.
+            interval (int, optional): The interval between frames in milliseconds. Default is 100.
+            **kwargs:
+            _qline_width =  kwargs.get('quiver_line_width', 1)
+            _qsize = kwargs.get('quiver_size', 0.1)
+            _pline_width = kwargs.get('path_line_width', 0.5)
+            _mline_width = kwargs.get('marker_line_width', 1.0)
+
+            Returns:
+            FuncAnimation: The animation object for the trajectories.
+        """
+        # ax = self.add_subplot(111, projection='3d', title='3D Spline Trajectories', labels=['X', 'Y', 'Z'])
+        
+        # Concatenate all trajectory points into a single array for setting plot limits
+        # all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
+        # # Set axis limits based on the collected points
+        # self.set_3D_plot_axis_limits(ax, all_points)
+
+        _time_data = kwargs.get('time_data', np.array([]))
+        if _time_data.size > 0:
+            self.ADD_TIMER_FLAG = True
+        # Initialize lines for each trajectory, empty at first, with a specific style and label
+        _qline_width =  kwargs.get('quiver_line_width', 1)
+        _qsize = kwargs.get('quiver_size', 0.1)
+        _pline_width = kwargs.get('path_line_width', 2.0)
+        _mline_width = kwargs.get('marker_line_width', 1.0)
+        
+        traj_lines = {name: ax.plot([], [], [], linewidth=_pline_width, label=name)[0] for name in dict_trajectories.keys()}
+        # marker_lines = {name: ax.plot([], [], [], 'r-', linewidth=_mline_width, label=f'{name}_marker')[0] for name in dict_markers.keys()}
+        marker_lines = {name: ax.plot([], [], [], 'r-', linewidth=_mline_width)[0] for name in dict_markers.keys()}
+
+        # Initialize marker points for each trajectory, empty at first
+        traj_points = {name: ax.plot([], [], [], 'o', color=traj_lines[name].get_color())[0] for name in dict_trajectories.keys()}
+        marker_points = {name: ax.plot([], [], [], 'o', color='darkgrey')[0] for name in dict_markers.keys()}
+
+        # Create a list of lists for storing quivers associated with each trajectory
+        quivers_dict = {name: [] for name in dict_trajectories.keys()}
+
+        # Create a text object for time annotation
+        time_text = ax.text2D(0.15, 0.95, '', transform=ax.transAxes, fontsize=14, weight='bold') if self.ADD_TIMER_FLAG else None
+
+        def init():
+            for line in traj_lines.values():
+                line.set_data([], [])
+                line.set_3d_properties([])
+
+            for line in marker_lines.values():
+                line.set_data([], [])
+                line.set_3d_properties([])
+
+            for point in traj_points.values():
+                point.set_data([], [])
+                point.set_3d_properties([])
+
+            for point in marker_points.values():
+                point.set_data([], [])
+                point.set_3d_properties([])
+
+            for quiver_list in quivers_dict.values():
+                for q in quiver_list:
+                    q.remove()
+                quiver_list.clear()
+
+            return (list(traj_lines.values()) + 
+                    list(marker_lines.values()) + 
+                    list(traj_points.values()) + 
+                    list(marker_points.values()) + 
+                    [item for sublist in quivers_dict.values() for item in sublist] + 
+                    ([time_text] if time_text else []))
+        
+        # Define an update function for the animation that gets called at each frame
+        def update(num):
+            for name, line in traj_lines.items():
+                traj = dict_trajectories[name]
+                line.set_data(traj[:num + 1, 0], traj[:num + 1, 1])
+                line.set_3d_properties(traj[:num + 1, 2])
+
+                traj_points[name].set_data(traj[num:num + 1, 0], traj[num:num + 1, 1])
+                traj_points[name].set_3d_properties(traj[num:num + 1, 2])
+
+                quiver_list = quivers_dict[name]
+                while quiver_list:
+                    q = quiver_list.pop()
+                    q.remove()
+
+                if traj.shape[1] > 3:
+                    quiver_list.extend(self.plot_coordinate_frame(ax, traj[num], size=_qsize, linewidth=_qline_width))
+
+            for name, line in marker_lines.items():
+                markers = dict_markers[name]
+                line.set_data(markers[:num + 1, 0], markers[:num + 1, 1])
+                line.set_3d_properties(markers[:num + 1, 2])
+
+                marker_points[name].set_data(markers[num:num + 1, 0], markers[num:num + 1, 1])
+                marker_points[name].set_3d_properties(markers[num:num + 1, 2])
+
+            if self.ADD_TIMER_FLAG:
+                time_text.set_text(f'Time: {_time_data[num]:.3f} s')
+
+            return (list(traj_lines.values()) + 
+                    list(marker_lines.values()) + 
+                    list(traj_points.values()) + 
+                    list(marker_points.values()) + 
+                    [item for sublist in quivers_dict.values() for item in sublist] + 
+                    ([time_text] if time_text else []))
+        
+        ani = FuncAnimation(self.fig, update, frames=len(next(iter(dict_trajectories.values()))), init_func=init, blit=False, interval=interval)
+
+        # Add the legend here
+        ax.legend(loc='upper right')
+        return ani
