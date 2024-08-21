@@ -21,8 +21,9 @@ MAKE_VIDEO = True
 
 TIME_STAMPS = True
 
-def get_visualization(data, save_path=None, video=False):
+def get_visualization(data, save_path=None, video=False, **kwargs):
     #change C_TxyzRxyz to apply rma.normalize_eulers to all rows of C_TxyzRxyz[:, 3:]
+    COMMENTS = kwargs.get('comments', "")
 
     rigid_bodies_dict = data.get_rigid_TxyzQwxyz()
 
@@ -95,8 +96,8 @@ def get_visualization(data, save_path=None, video=False):
                                                  quiver_line_width=2,
                                                  quiver_size=0.07,
                                                  path_line_width=0.7,
-                                                 marker_line_width=0.3)
-    
+                                                 marker_line_width=0.3,
+                                                 comments=COMMENTS)
     
     if save_path:
         if video:
@@ -109,11 +110,14 @@ def get_visualization(data, save_path=None, video=False):
         plt.show()
         # plt.show()
 
-def read_file_and_visualize(file_path, save_path):
+def read_file_and_visualize(file_path, save_path, **kwargs):
+    COMMENTS = kwargs.get('comments', "")
+
     _file_name = os.path.basename(file_path)
     data = cfp.DataParser.from_quat_file(file_path=file_path, target_fps=FILE_READ_FPS, filter=True, window_size=15, polyorder=3)
     get_visualization(data=data,
-                      save_path=os.path.join(save_path), video=MAKE_VIDEO
+                      save_path=os.path.join(save_path), video=MAKE_VIDEO,
+                      comments=COMMENTS
                       # save_path=None, video=True
                       )
 
@@ -121,8 +125,8 @@ def read_file_and_visualize(file_path, save_path):
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/test_files/csvs'
-    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/test_files/videos'
+    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/csvs'
+    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
     cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names
@@ -131,12 +135,14 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     _SUFFIX = kwargs.get('suffix', '') # suffix to add to the file name w/o extension
     if _suffix: _SUFFIX = f"_{_suffix}"
 
+
     BOOL_PARALLELIZE = kwargs.get('parallelize', True)
 
     if BOOL_PARALLELIZE:
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for file_name in cleaned_file_names:
+                _CMNTS = f"{file_name}"
                 _file_path = os.path.join(base_dir, file_name)
                 #### add SUFFIX to the file name before saving ####
                 _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' if MAKE_VIDEO else f'{os.path.splitext(file_name)[0]}{_SUFFIX}.png'
@@ -144,7 +150,7 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
                 _save_path = os.path.join(save_dir, _new_file_name)
 
                 print(f"Submitting: {file_name} -> save as: {_new_file_name}")
-                futures.append(executor.submit(read_file_and_visualize, _file_path, _save_path))
+                futures.append(executor.submit(read_file_and_visualize, _file_path, _save_path, comments = _CMNTS))
 
             for future in concurrent.futures.as_completed(futures):
                 try:
@@ -155,14 +161,15 @@ def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     
     if not BOOL_PARALLELIZE:
         for file_name in cleaned_file_names:
+            _CMNTS = f"{file_name}"
             _file_path = os.path.join(base_dir, file_name)
             #### add SUFFIX to the file name before saving ####
             _new_file_name = f'{os.path.splitext(file_name)[0]}{_SUFFIX}.mp4' if MAKE_VIDEO else f'{os.path.splitext(file_name)[0]}{_SUFFIX}.png'
             _save_path = os.path.join(save_dir, _new_file_name)
 
             print(f"Processing: {file_name} -> save as: {_new_file_name}")
-            read_file_and_visualize(_file_path, _save_path)
+            read_file_and_visualize(_file_path, _save_path, comments = _CMNTS)
 
 if __name__ == "__main__":
     _suffix = "interpolate" if INTERPOLATE else ""
-    main(max_workers = 10, STOP_FLAG=10, suffix=_suffix, parallelize = True)
+    main(max_workers = 10, STOP_FLAG=None, suffix=_suffix, parallelize = True)

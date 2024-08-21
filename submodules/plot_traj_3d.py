@@ -13,6 +13,7 @@ class PlotTraj3D(object):
         self.subplots = []
 
         self.ADD_TIMER_FLAG = False
+        self.ADD_COMMENTS_FLAG = False
     
     def add_subplot(self, r, c, i, **kwargs):
         ''' 
@@ -342,10 +343,17 @@ class PlotTraj3D(object):
         # all_points = np.concatenate([traj[:, :3] for traj in list_trajectories], axis=0)
         # # Set axis limits based on the collected points
         # self.set_3D_plot_axis_limits(ax, all_points)
-
+        self._comments = kwargs.get('comments', "")
+        
         _time_data = kwargs.get('time_data', np.array([]))
+        
+        if self._comments:
+            self.ADD_COMMENTS_FLAG = True
+
         if _time_data.size > 0:
             self.ADD_TIMER_FLAG = True
+            self.ADD_COMMENTS_FLAG = True
+
         # Initialize lines for each trajectory, empty at first, with a specific style and label
         _qline_width =  kwargs.get('quiver_line_width', 1)
         _qsize = kwargs.get('quiver_size', 0.1)
@@ -364,7 +372,7 @@ class PlotTraj3D(object):
         quivers_dict = {name: [] for name in dict_trajectories.keys()}
 
         # Create a text object for time annotation
-        time_text = ax.text2D(0.15, 0.95, '', transform=ax.transAxes, fontsize=14, weight='bold') if self.ADD_TIMER_FLAG else None
+        comments_text = ax.text2D(0.15, 0.90, '', transform=ax.transAxes, fontsize=14, weight='bold') if self.ADD_COMMENTS_FLAG else []
 
         def init():
             for line in traj_lines.values():
@@ -388,12 +396,14 @@ class PlotTraj3D(object):
                     q.remove()
                 quiver_list.clear()
 
-            return (list(traj_lines.values()) + 
+            return (
+                    list(traj_lines.values()) + 
                     list(marker_lines.values()) + 
                     list(traj_points.values()) + 
                     list(marker_points.values()) + 
                     [item for sublist in quivers_dict.values() for item in sublist] + 
-                    ([time_text] if time_text else []))
+                    ([comments_text] if comments_text else []) #TODO - extra if not needed
+                    )
         
         # Define an update function for the animation that gets called at each frame
         def update(num):
@@ -421,15 +431,18 @@ class PlotTraj3D(object):
                 marker_points[name].set_data(markers[num:num + 1, 0], markers[num:num + 1, 1])
                 marker_points[name].set_3d_properties(markers[num:num + 1, 2])
 
-            if self.ADD_TIMER_FLAG:
-                time_text.set_text(f'Time: {_time_data[num]:.3f} s')
+            if self.ADD_TIMER_FLAG: 
+                _updated_comments = self._comments + f"\nTime: {_time_data[num]:.3f} s\n"
+            
+            if _updated_comments:
+                comments_text.set_text(_updated_comments)
 
             return (list(traj_lines.values()) + 
                     list(marker_lines.values()) + 
                     list(traj_points.values()) + 
                     list(marker_points.values()) + 
                     [item for sublist in quivers_dict.values() for item in sublist] + 
-                    ([time_text] if time_text else []))
+                    ([comments_text] if comments_text else []))
         
         ani = FuncAnimation(self.fig, update, frames=len(next(iter(dict_trajectories.values()))), init_func=init, blit=False, interval=interval)
 
