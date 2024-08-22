@@ -125,8 +125,8 @@ def read_file_and_visualize(file_path, save_path, **kwargs):
 def main(max_workers=10, STOP_FLAG=None, **kwargs):  #THis is HARD CODED for now
     global INTERPOLATE
     # base_dir = 'no-sync/turn_table_chisel/tilt_25/1.cleaned_data/training_traj/csvs'; INTERPOLATE = False
-    base_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/edge_1_step_1/battery_not_predicted/markers_A1-A2-A3-A4/prediction_500/static_n_moving_markers/csvs'
-    save_dir = 'no-sync/aug14/trimmed_traj_with_helmet_meters/segments/edge_1_step_1/battery_not_predicted/markers_A1-A2-A3-A4/prediction_500/static_n_moving_markers/videos'
+    base_dir = 'no-sync/aug14/temp/csvs'
+    save_dir = 'no-sync/aug14/temp/videos'
     
     cleaned_file_names = sorted([file for file in os.listdir(base_dir) if file.endswith('.csv')])
     cleaned_file_names = cleaned_file_names[:STOP_FLAG] if STOP_FLAG else cleaned_file_names
