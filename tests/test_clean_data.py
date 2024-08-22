@@ -47,7 +47,7 @@ _params = {
 
 
 gripper_marker_name = ['GS']
-RigidBody_OI = ['battery', 'chisel', 'gripper']
+RigidBody_OI = ['battery', 'chisel', 'gripper', 'helmet']
 Markersheet_OI = [
     "sheet_aug15:Marker 001",
     "sheet_aug15:Marker 0010", 
@@ -93,8 +93,8 @@ Markersheet_OI = [
 REF_FRAME = 100
 
 
-dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/raw_traj/'
-save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/segmented_data_set/'
+dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/raw_traj_1/'
+save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/segmented_data_set/train_traj/'
 
 # B_MOIs = mfc._get_sheet_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, cross_ref_limit)
 # G_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)

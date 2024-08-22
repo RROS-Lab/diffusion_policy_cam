@@ -178,7 +178,7 @@ def velocity_to_state(data_state_dict: dict[str :np.array], data_time: np.array,
     return data_velocity_dict
 
 def rename_rb_columns_with_prefix(df, prefix):
-    return df.rename(columns=lambda x: f"{prefix.split('_')[-1]}_{x}")
+    return df.rename(columns=lambda x: f"{prefix.split('_')[0]}_{x}")
 
 
 def rename_ms_columns_with_prefix(df, prefix):

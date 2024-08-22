@@ -484,7 +484,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
     create a new csv file with the cleaned data in robodk frame
 
     '''
-    segment_file = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug14/combined_segments.csv'
+    segment_file = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/combined_segments.csv'
 
     segmet_data = pd.read_csv(segment_file)
     
