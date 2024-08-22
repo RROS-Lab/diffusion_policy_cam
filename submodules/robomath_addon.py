@@ -166,3 +166,14 @@ def first_derivative(data: np.ndarray, times: np.ndarray) -> np.ndarray:
     Compute the first derivative of the data.
     """
     return np.gradient(data, times, edge_order=2)
+
+
+def empathy_transform(W_T_R: rm.Mat, R_O: rm.Mat, W_T_Fin: rm.Mat) -> rm.Mat:
+    ''' 
+    Reference Frame -> W_T_R
+    Matrix Operation -> R_O
+    Frame In -> W_T_Fin
+    ---
+    Frame Out -> W_T_Fout
+    '''
+    return W_T_R * R_O * rm.invH(W_T_R) * W_T_Fin
