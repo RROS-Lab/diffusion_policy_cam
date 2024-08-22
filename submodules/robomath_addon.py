@@ -177,3 +177,34 @@ def empathy_transform(W_T_R: rm.Mat, R_O: rm.Mat, W_T_Fin: rm.Mat) -> rm.Mat:
     Frame Out -> W_T_Fout
     '''
     return W_T_R * R_O * rm.invH(W_T_R) * W_T_Fin
+
+def empathy_transform_TxyzRxyz(W_TxyzRxyz_R: list[6], R_OxyzRxyz: list[6], W_TxyzRxyz_Fin: list[6]) -> list[6]:
+    ''' 
+    Reference Frame -> W_TxyzRxyz_R
+    Matrix Operation -> R_OxyzRxyz
+    Frame In -> W_TxyzRxyz_Fin
+    ---
+    Frame Out -> W_TxyzRxyz_Fout
+    '''
+    W_T_R = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_R)
+    R_O = rm.TxyzRxyz_2_Pose(R_OxyzRxyz)
+    W_T_Fin = rm.TxyzRxyz_2_Pose(W_TxyzRxyz_Fin)
+    W_T_Fout = empathy_transform(W_T_R, R_O, W_T_Fin)
+    W_TxyzRxyz_Fout = rm.Pose_2_TxyzRxyz(W_T_Fout)
+    return W_TxyzRxyz_Fout
+
+def empathy_transform_TxyzQwxyz(W_TxyzQwxyz_R: list[7], R_OxyzQwxyz: list[7], W_TxyzQwxyz_Fin: list[7]) -> list[7]:
+    ''' 
+    Reference Frame -> W_TxyzQwxyz_R
+    Matrix Operation -> R_OxyzQwxyz
+    Frame In -> W_TxyzQwxyz_Fin
+    ---
+    Frame Out -> W_TxyzQwxyz_Fout
+    '''
+    W_T_R = TxyzQwxyz_2_Pose(W_TxyzQwxyz_R)
+    R_O = TxyzQwxyz_2_Pose(R_OxyzQwxyz)
+    W_T_Fin = TxyzQwxyz_2_Pose(W_TxyzQwxyz_Fin)
+    W_T_Fout = empathy_transform(W_T_R, R_O, W_T_Fin)
+    W_TxyzQwxyz_Fout = Pose_2_TxyzQwxyz(W_T_Fout)
+    return W_TxyzQwxyz_Fout
+
