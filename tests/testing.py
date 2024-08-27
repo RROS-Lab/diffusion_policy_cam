@@ -31,3 +31,11 @@ for T ,(markT, batT) in enumerate(zip(marker[:stop_index], battery[:stop_index])
         loss.append(nn.functional.mse_loss(torch.tensor(cal_markT), torch.tensor(markT)))
 
 print(len(loss))
+
+
+
+############################################
+#### original pred horizon ################
+############################################
+
+############################################
