@@ -124,17 +124,15 @@ class TaskStateDataset(torch.utils.data.Dataset):
         for i in range(index[-1]):
             if Velocitydataset is None:
                 a = np.concatenate([Rigiddataset[item][i] for item in action_item]) if Rigiddataset is not None else np.array([])
-                b = np.concatenate(
-                ([Rigiddataset[item][i] for item in action_item] if Rigiddataset is not None else []) +
-                ([Rigiddataset[item][i] for item in obs_item] if Rigiddataset is not None else []) +
-                ([Markerdataset[item][i] for item in marker_item] if Markerdataset is not None else []))
 
             else :
                 a = np.concatenate([Velocitydataset[item][i] for item in action_item]) if Velocitydataset is not None else np.array([])
-                b = np.concatenate(
-                ([Velocitydataset[item][i] for item in action_item] if Velocitydataset is not None else []) +
+            
+            b = np.concatenate(
+                ([Rigiddataset[item][i] for item in action_item] if Rigiddataset is not None else []) +
                 ([Rigiddataset[item][i] for item in obs_item] if Rigiddataset is not None else []) +
-                ([Markerdataset[item][i] for item in marker_item] if Markerdataset is not None else []))
+                ([Markerdataset[item][i] for item in marker_item] if Markerdataset is not None else [])
+            )
             # print(b)
             action.append(a)
             obs.append(b)

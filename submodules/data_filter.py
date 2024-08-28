@@ -198,6 +198,15 @@ def trim_lists_in_dicts(dicts):
     
     return trimmed_dicts
 
+def find_closest_number(target, arr):
+    closest = min(arr, key=lambda x: abs(x - target))
+    return closest
+
+def find_index(number, arr):
+    arr = np.array(arr)
+    indices = np.where(arr == number)[0]
+    return indices[0] if indices.size > 0 else -1
+
 
 def stop_rotation_index(path, target_fps):
     
@@ -213,7 +222,6 @@ def stop_rotation_index(path, target_fps):
 
     yaw = np.rad2deg(yaw)
     yaw_dot = rma.first_derivative(yaw, _times)
-
 
     # Find the end of rotation
     thresehold = 1

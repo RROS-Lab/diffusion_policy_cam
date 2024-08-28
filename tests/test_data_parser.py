@@ -10,9 +10,9 @@ from matplotlib import pyplot as plt
 import submodules.robomath_addon as rma
 
 
-path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/tilt_25/dataset_aug_12/cleaned_traj/take_001_cleaned.csv'
+path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/force_traj/csvs/ft_002_force_state_cleaned.csv'
 
-data = cfp.DataParser.from_quat_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
+data = cfp.DataParser.from_euler_file(file_path = path, target_fps= 120, filter=False, window_size=5, polyorder=3)
 
 print(data.rigid_bodies)
 print(data.markers)
@@ -60,7 +60,7 @@ print(data.markers)
 
 # print()
 # '''
-rigid_state = data.get_rigid_state()
+rigid_state = data.get_rigid_TxyzRxyz()
 markers = data.get_marker_Txyz()
 # time = data.get_time()
 
