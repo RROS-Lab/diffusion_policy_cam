@@ -108,31 +108,40 @@ def unnormalize_data(ndata, stats):
 
 
 class TaskStateDataset(torch.utils.data.Dataset):
-    def __init__(self, Rigiddataset: Union[list, np.array, None], Velocitydataset: Union[list, np.array, None],
-                  Markerdataset: Union[list, np.array, None], index,
+    def __init__(self, Rigiddataset: Union[list, np.array, None], Actiondataset: Union[list, np.array, None],
+                  Markerdataset: Union[list, np.array, None], Statedataset: Union[list, np.array, None], index,
                   action_item: Union[list, None], obs_item: Union[list, None], marker_item: Union[list, None],
-                 pred_horizon, obs_horizon, action_horizon):
+                 state_item: Union[list, None], pred_horizon, obs_horizon, action_horizon):
 
         action = []
         obs = []
 
         # Ensure action_item, obs_item, and marker_item are not None
         action_item = action_item if action_item is not None else []
+        state_item = state_item if state_item is not None else []
         obs_item = obs_item if obs_item is not None else []
         marker_item = marker_item if marker_item is not None else []
 
         for i in range(index[-1]):
-            if Velocitydataset is None:
-                a = np.concatenate([Rigiddataset[item][i] for item in action_item]) if Rigiddataset is not None else np.array([])
+            if Actiondataset is None:
+                a = np.concatenate(([Rigiddataset[item][i] for item in action_item] if Rigiddataset is not None else []) +
+                                   ([Statedataset[item][i] for item in state_item] if Statedataset is not None else [])
+                                  )
+                # if i < 5:
+                #     print(a)
 
             else :
-                a = np.concatenate([Velocitydataset[item][i] for item in action_item]) if Velocitydataset is not None else np.array([])
+                a = np.concatenate(([Actiondataset[item][i] for item in action_item] if Actiondataset is not None else []) +
+                                   ([Statedataset[item][i] for item in state_item] if Statedataset is not None else [])
+                                  )
             
             b = np.concatenate(
                 ([Rigiddataset[item][i] for item in action_item] if Rigiddataset is not None else []) +
                 ([Rigiddataset[item][i] for item in obs_item] if Rigiddataset is not None else []) +
+                ([Statedataset[item][i] for item in state_item] if Statedataset is not None else []) +
                 ([Markerdataset[item][i] for item in marker_item] if Markerdataset is not None else [])
             )
+            
             # print(b)
             action.append(a)
             obs.append(b)

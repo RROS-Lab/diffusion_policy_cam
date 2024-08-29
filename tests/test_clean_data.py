@@ -34,7 +34,7 @@ print("..........")
 cross_ref_limit = 5
 Body_type = 'rb'
 tolerance_sheet = [0.02, 0.02, 0.02]
-tolerance_gripper = [0.005, 0.06, 0.005]
+tolerance_gripper = [0.025, 0.06, 0.005]
 
 _params = {
     'rb': {'len':7,
@@ -93,14 +93,14 @@ Markersheet_OI = [
 REF_FRAME = 100
 
 
-dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/raw_traj_1/'
-save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/segmented_data_set/train_traj/'
+dir_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/raw_traj/'
+save_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/trimmed_traj/segmented_state_traj/csvs/'
 
 # B_MOIs = mfc._get_sheet_marker_limit(dir_path, RigidBody_OI ,Body_type, 'battery', REF_FRAME, tolerance_sheet, cross_ref_limit)
-# G_MOIs = mfc._get_marker_limit(dir_path, RigidBody_OI ,Body_type, 'gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit)
+G_MOIs = mfc._get_object_marker_limit(dir_path, RigidBody_OI, Markersheet_OI ,Body_type, 'aug16_gripper', REF_FRAME, tolerance_gripper, gripper_marker_name, cross_ref_limit, _params)
 
 
-# MOIs = {'gripper': G_MOIs}
+MOIs = {'aug16_gripper': G_MOIs}
 # print(len(MOIs['battery']['pos']))
 
 Oi = {'RigidBody': RigidBody_OI, 'Marker': Markersheet_OI}
@@ -108,9 +108,16 @@ files = os.listdir(dir_path)
 
 
 for file in files:
+    # saved_file = re.sub(r'\.csv', '_cleaned.csv', file)
     if file.endswith(".csv"):
-        print(file)
+        pattern = re.compile(re.escape(file.split('.')[0]))
+        saved_files = os.listdir(save_path)
+        file_exists = any(f for f in saved_files if pattern.search(f))
+        if file_exists:
+            continue
+        print(file) 
+        
         csv_path = os.path.join(dir_path, file)
         # save_file = re.sub(r'\.csv', '_cleaned.csv', file)
         # save_file_path = os.path.join(save_path, save_file)
-        mfc.motive_chizel_task_cleaner(csv_path=csv_path, save_path=save_path, OI = Oi, _params = _params, REF_FRAME = REF_FRAME, MOIs = None)
+        mfc.motive_chizel_task_cleaner(csv_path=csv_path, save_path=save_path, OI = Oi, _params = _params, REF_FRAME = REF_FRAME, MOIs = MOIs)

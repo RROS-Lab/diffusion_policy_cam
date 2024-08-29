@@ -52,7 +52,7 @@ class DataParser:
         rb_TxyzQwxyz = {}  # Dictionary to store processed data
         
         for rb in self.rigid_bodies:
-            rb_columns = [col for col in self.data.columns if col.startswith(rb)]
+            rb_columns = [col for col in self.data.columns if col.startswith(rb + '_')]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1])
             if rb+'_state' in sorted_columns:
                 sorted_columns.remove(rb+'_state')
@@ -86,7 +86,7 @@ class DataParser:
         rb_TxyzRxyz = {}  # Dictionary to store processed data
         
         for rb in self.rigid_bodies:
-            rb_columns = [col for col in self.data.columns if col.startswith(rb)]
+            rb_columns = [col for col in self.data.columns if col.startswith(rb + '_')]
             sorted_columns = sorted(rb_columns, key=lambda x: x.split('_')[1]) 
             if rb+'_state' in sorted_columns:
                 sorted_columns.remove(rb+'_state')
@@ -95,7 +95,7 @@ class DataParser:
             if self.file_type == 'QUAT':
                 rb_TxyzRxyz[rb] = np.apply_along_axis(rma.TxyzQwxyz_2_TxyzRxyz, 1, self.data[sorted_columns].values.astype(float))
             elif self.file_type == 'EULER':
-                rb_TxyzRxyz[rb] = self.data[rb_columns].values.astype(float)
+                rb_TxyzRxyz[rb] = self.data[sorted_columns].values.astype(float)
 
         for key, value in kwargs.items():
             if key == 'item':
@@ -120,7 +120,7 @@ class DataParser:
 
         # Extract marker data
         for mk in self.markers:
-            mk_columns = [col for col in self.data.columns if col.startswith(mk)]
+            mk_columns = [str(col) for col in self.data.columns if col.startswith(mk + '_')]
             sorted_columns = sorted(mk_columns, key=lambda x: x.split('_')[1])
             
             # Motive
@@ -209,18 +209,16 @@ class DataParser:
             writer.writerows(_transformed_data)
 
 
-
     @classmethod
     def from_euler_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
         return DataParser(file_path, 'EULER', target_fps, filter, window_size, polyorder)
     
-
     
     @classmethod
     def from_quat_file(self, file_path, target_fps: Union[float , None], filter: bool = False, window_size: int = 15, polyorder: int = 3):
         return DataParser(file_path, 'QUAT', target_fps, filter, window_size, polyorder)
     
-
+    
     def __init__(self, file_path, file_type: Union["QUAT", "EULER"], target_fps: float, 
                  filter: bool = False, window_size: int = 15, polyorder: int = 3):
         

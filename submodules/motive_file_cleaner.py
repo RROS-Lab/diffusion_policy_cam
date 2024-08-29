@@ -271,7 +271,12 @@ def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, 
     
 
     start_index = get_index(data, 'level_0', start)
-    end_index = get_index(data, 'level_0', end)
+    
+    if end == 0:
+        end_index = len(data['level_0'])
+        print(f"End: {end}")
+    else:
+        end_index = get_index(data, 'level_0', end)
     
     print(f"Start Index: {start_index}, End Index: {end_index}")
         
@@ -289,13 +294,12 @@ def _get_data_dictionary(csv_path: str, RigidBody_OI: list, MarkerSet_OI: list, 
     return DOI_dict, FPS
 
 
-
 def _get_item_dict_wrt_frame(DOI_dict: dict, REF_FRAME: int, type) -> dict:
     '''
     This function is used to get the item dictionary at a specific frame
     '''
     
-    item_to_filter_dict = {name: DOI_dict[type][name].iloc[REF_FRAME].dropna().values 
+    item_to_filter_dict = {name: (DOI_dict[type][name].iloc[REF_FRAME].dropna().values )/1000
                     for name in DOI_dict[type] 
                     if not DOI_dict[type][name].iloc[REF_FRAME].isna().any()}
     
@@ -318,6 +322,20 @@ def _get_marker_wrt_item(marker: dict, item_XYZwxyz: list) -> dict:
         
     return unlabel_vector
 
+def change_to_object_frame(object1_frame: dict, object2_frame: dict) -> dict:
+    '''
+    This function is used to change the frame of object1 to object2
+    input = object1_frame: dictionary of object1 frame
+            object2_frame: dictionary of object2 frame
+            object1_name: name of object1
+            object2_name: name of object2
+    output = object1_frame: dictionary of object1 frame wrt object2
+    '''
+    new_values = []
+    for value1, value2 in zip(object1_frame.to_numpy(), object2_frame.to_numpy()):
+        new_values.append(rma.Vxyz_wrt_TxyzQwxyz(value1, value2))
+    
+    return new_values
 
 def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, MarkerSet_OI: list, Body_type: str, Body_OI: str, REF_FRAME: int, cross_ref_limit: int, _params: dict) -> list:
     '''
@@ -331,11 +349,11 @@ def _get_V_wrt_Item_per_file(dir_path: str, RigidBody_OI: list, MarkerSet_OI: li
             
             csv_path = os.path.join(dir_path, file)
 
-            DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI, MarkerSet_OI, _params)
+            DOI_dict, _ = _get_data_dictionary(csv_path, RigidBody_OI, MarkerSet_OI, _params, start=0, end=0)
 
             mk_to_filter_dict = _get_item_dict_wrt_frame(DOI_dict, REF_FRAME, 'mk')
             
-            item_pos = DOI_dict[Body_type][Body_OI].iloc[REF_FRAME].dropna().values
+            item_pos = (DOI_dict[Body_type][Body_OI].iloc[REF_FRAME].dropna().values)/1000
             
             markers_vectors = _get_marker_wrt_item(mk_to_filter_dict, item_pos)
             
@@ -362,12 +380,12 @@ def _get_sheet_marker_limit(dir_path: str, RigidBody_OI: list, MarkerSet_OI: lis
     return marker_limit
 
 
-def _get_object_marker_limit(dir_path: str, RigidBody_OI: list, Body_type: str, Body_OI: str, 
-                      REF_FRAME: int, tolerance: list, marker_label: list, cross_ref_limit: int) -> dict:
+def _get_object_marker_limit(dir_path: str, RigidBody_OI: list, MarkerSet_OI: list,Body_type: str, Body_OI: str, 
+                      REF_FRAME: int, tolerance: list, marker_label: list, cross_ref_limit: int, _params: dict) -> dict:
     '''
     This function is used to get the marker limit of objects for the chisel task
     '''
-    dicts = _get_V_wrt_Item_per_file(dir_path, RigidBody_OI, Body_type, Body_OI, REF_FRAME, cross_ref_limit)
+    dicts = _get_V_wrt_Item_per_file(dir_path, RigidBody_OI, MarkerSet_OI, Body_type, Body_OI, REF_FRAME, cross_ref_limit, _params)
     similar_keys = find_similar_values_across_all(dicts, tolerance)
     marker_limit = {"names": marker_label, "pos": [key for key in similar_keys.keys()], "tolerance": tolerance}
     
@@ -382,8 +400,10 @@ def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
 
     # Process each type of marker ('battery', 'gripper', etc.)
     for item_key, MOI_set in MOIs.items():
-        pos = DOI_dict['rb'][item_key].iloc[REF_FRAME].dropna().values
+        pos = (DOI_dict['rb'][item_key].iloc[REF_FRAME].dropna().values)/1000
         marker_vectors = _get_marker_wrt_item(mk_to_filter_dict, pos)
+        print(f"File:  has {marker_vectors}")
+        
         filter_labels = filter_MOIs(marker_vectors, MOI_set)
         
         # Update the combined dictionary with filter labels
@@ -394,48 +414,94 @@ def _process_markers(DOI_dict, MOIs, REF_FRAME, save_file, Marker_OI):
                 filter_labels_combined[key] = labels
         
     # Check results for current item
-    if len(filter_labels_combined) == len(Marker_OI):
-        print(f"File: {save_file} has all {item_key} markers")
-    elif len(filter_labels_combined) > len(Marker_OI):
-        print(f"File: {save_file} has extra {item_key} markers")
-        print("Stopping execution......................")
-        return  # Exit the function
-    else:
-        print(f"File: {save_file} has missing {item_key} markers")
-        print("Stopping execution......................")
-        return  # Exit the function
+    # if len(filter_labels_combined) == len(Marker_OI):
+    #     print(f"File: {save_file} has all {item_key} markers")
+    # elif len(filter_labels_combined) > len(Marker_OI):
+    #     print(f"File: {save_file} has extra {item_key} markers")
+    #     print("Stopping execution......................")
+    #     return  # Exit the function
+    # else:
+    #     print(f"File: {save_file} has missing {item_key} markers")
+    #     print("Stopping execution......................")
+    #     return  # Exit the function
+    
+    print(f"File: {save_file} has all {filter_labels_combined}")
     
     return filter_labels_combined
    
-   
-    
+
     
 def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_OI: list, _params: dict) -> pd.DataFrame:
     '''
     This function is used to get the cleaned dataframe
     Changing to robodk frame First time for the rigid body and markers'''
     
+#     Marker_OI = {
+#     "A1": "sheet_aug15:Marker 006",
+#     "A2": "sheet_aug15:Marker 007",
+#     "A3": "sheet_aug15:Marker 014",
+#     "A4": "sheet_aug15:Marker 0010",
+#     "B1": "sheet_aug15:Marker 019",
+#     "B2": "sheet_aug15:Marker 029",
+#     "D1": "sheet_aug15:Marker 036",
+#     "D2": "sheet_aug15:Marker 037",
+#     "D3": "sheet_aug15:Marker 039",
+#     "D4": "sheet_aug15:Marker 040",
+#     "C1": "sheet_aug15:Marker 026",
+#     "C2": "sheet_aug15:Marker 003"
+# }  
+
     Marker_OI = {
-    "A1": "sheet_aug15:Marker 006",
-    "A2": "sheet_aug15:Marker 007",
-    "A3": "sheet_aug15:Marker 014",
-    "A4": "sheet_aug15:Marker 0010",
-    "B1": "sheet_aug15:Marker 019",
-    "B2": "sheet_aug15:Marker 029",
-    "C1": "sheet_aug15:Marker 036",
-    "C2": "sheet_aug15:Marker 037",
-    "D1": "sheet_aug15:Marker 039",
-    "D2": "sheet_aug15:Marker 040",
-    "D3": "sheet_aug15:Marker 026",
-    "D4": "sheet_aug15:Marker 003"
-}  
+    '001': 'sheet_aug15:Marker 001',
+    '0010': 'sheet_aug15:Marker 0010',
+    '002': 'sheet_aug15:Marker 002',
+    '003': 'sheet_aug15:Marker 003',
+    '004': 'sheet_aug15:Marker 004',
+    '005': 'sheet_aug15:Marker 005',
+    '006': 'sheet_aug15:Marker 006',
+    '007': 'sheet_aug15:Marker 007',
+    '008': 'sheet_aug15:Marker 008',
+    '009': 'sheet_aug15:Marker 009',
+    '011': 'sheet_aug15:Marker 011',
+    '012': 'sheet_aug15:Marker 012',
+    '013': 'sheet_aug15:Marker 013',
+    '014': 'sheet_aug15:Marker 014',
+    '015': 'sheet_aug15:Marker 015',
+    '016': 'sheet_aug15:Marker 016',
+    '017': 'sheet_aug15:Marker 017',
+    '018': 'sheet_aug15:Marker 018',
+    '019': 'sheet_aug15:Marker 019',
+    '020': 'sheet_aug15:Marker 020',
+    '021': 'sheet_aug15:Marker 021',
+    '022': 'sheet_aug15:Marker 022',
+    '023': 'sheet_aug15:Marker 023',
+    '024': 'sheet_aug15:Marker 024',
+    '025': 'sheet_aug15:Marker 025',
+    '026': 'sheet_aug15:Marker 026',
+    '027': 'sheet_aug15:Marker 027',
+    '028': 'sheet_aug15:Marker 028',
+    '029': 'sheet_aug15:Marker 029',
+    '030': 'sheet_aug15:Marker 030',
+    '031': 'sheet_aug15:Marker 031',
+    '032': 'sheet_aug15:Marker 032',
+    '033': 'sheet_aug15:Marker 033',
+    '034': 'sheet_aug15:Marker 034',
+    '035': 'sheet_aug15:Marker 035',
+    '036': 'sheet_aug15:Marker 036',
+    '037': 'sheet_aug15:Marker 037',
+    '038': 'sheet_aug15:Marker 038',
+    '039': 'sheet_aug15:Marker 039',
+    '040': 'sheet_aug15:Marker 040'
+}
+
     df = pd.concat(
         [pd.DataFrame(DOI_dict["times"])] +
         [_df.rename_rb_columns_with_prefix(DOI_dict["rb"][name], name) for name in DOI_dict["rb"]] +
+        [pd.DataFrame(DOI_dict["state"][name]) for name in DOI_dict["state"]] +
         [_df.rename_ms_columns_with_prefix(DOI_dict["ms"][name], key) for key, name in Marker_OI.items() if name in DOI_dict["ms"]],
         axis=1
     )
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['rb']['len'] + ["Marker"] * len(Marker_OI) * _params['ms']['len'])
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * len(RigidBody_OI) * _params['rb']['len'] + ["RigidBody"] + ["Marker"] * len(Marker_OI) * _params['ms']['len'])
     
     
     _HEADER_ROW = df.columns
@@ -446,7 +512,7 @@ def _get_cleaned_dataframe(DOI_dict: dict, FPS:int ,RigidBody_OI: list, Marker_O
     combined_set = RigidBody_OI + list(Marker_OI.keys())
 
     for rb in combined_set:
-        rb_columns = [col for col in df.columns if col.startswith(rb+'_')]
+        rb_columns = [col for col in df.columns if col.startswith(rb+'_') and not col.endswith('state')]
         # print(rb_columns)
         if len(rb_columns) == 3:
             df[rb_columns] = np.apply_along_axis(rma.motive_2_robodk_marker, 1, df[rb_columns].values.astype(float))
@@ -501,8 +567,12 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
         
         
         save_file = (re.sub(r'\.csv', f'_edge_{edge}_step_{step}.csv', csv_path)).split('/')[-1]
+        
+    # start = 0
+    # end = 0
+    # save_file = (re.sub(r'\.csv', f'_cleaned.csv', csv_path)).split('/')[-1]
     
-        # print(f"Save file: {save_file}")
+    # print(f"Save file: {save_file}")
         
         save_file_path = os.path.join(save_path, save_file)
         
@@ -527,6 +597,19 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
                 # print(f"Removing extra key: {key}")
                 DOI_dict['mk'].pop(key)
                 
+        key_name = [key for key in MOIs.keys()]
+        gripper_state = change_to_object_frame(DOI_dict['mk']['GS'], DOI_dict['rb'][key_name[0]])
+        on_off_distance = []
+        for value in gripper_state:
+            on_off_distance.append(rm.distance(value, [0, 0, 0]))
+            
+        on_off_state = [1 if distance > 30 else -1 for distance in on_off_distance]
+        
+        if 'state' not in DOI_dict:
+            DOI_dict['state'] = {}
+        
+        DOI_dict['state']['gripper_state'] = pd.DataFrame(on_off_state, columns=['gripper_state'])
+        
         print("File path: ", save_file)
         
         _data = _get_cleaned_dataframe(DOI_dict, FPS, OI['RigidBody'], OI['Marker'], _params)
@@ -534,7 +617,7 @@ def motive_chizel_task_cleaner(csv_path:str, save_path:str, OI:dict, _params: di
         if _data is not False:
             # print(f"Saving file: {save_file_path}")
             _data.to_csv(f'{save_file_path}', index=False)
-            
+                
 
 # if __name__ == "__main__":
 

@@ -8,6 +8,7 @@ import submodules.ati_file_parser as afp
 import submodules.data_filter as _df
 import numpy as np
 import csv
+import re
 
 def save_2_csv(state_data, force_data, file_path):
     # add first rows
@@ -21,7 +22,7 @@ def save_2_csv(state_data, force_data, file_path):
                     'dof': ['FX', 'FY', 'FZ', 'Fx', 'Fy', 'Fz']}
     }
     
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * (len(state_data.rigid_bodies) + 1) * _params[save_type]['len'] + ["Marker"] * len(state_data.markers) * 3)
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * (len(state_data.rigid_bodies) + 1) * _params[save_type]['len']  + ["Marker"] * len(state_data.markers) * 3)
     _FPS_ROW = ["FPS", state_data.fps] + [0.0]*(len(_SUP_HEADER_ROW) - 2)
     
     _rb_col_names = []
@@ -33,9 +34,10 @@ def save_2_csv(state_data, force_data, file_path):
             _rb_col_names.extend([f"{rb}_{axis}"  for axis in _params[save_type]['dof']])
     
     _mk_col_names = [f"{mk}_{axis}" for mk in state_data.markers for axis in ['X', 'Y', 'Z']]
-    _HEADER_ROW = ['Time']+_rb_col_names + _mk_col_names
+    _HEADER_ROW = ['Time']+_rb_col_names  + _mk_col_names
 
     _dict_data_rigid = state_data.get_rigid_TxyzRxyz()
+    _on_off_data = state_data.get_rigid_state()['gripper']
     _array_force_data = force_data
     _dict_data_marker = state_data.get_marker_Txyz()
     _dict_data_time = state_data.get_time()
@@ -43,7 +45,9 @@ def save_2_csv(state_data, force_data, file_path):
     _dict_data_rigid['chisel'] = np.concatenate([_dict_data_rigid['chisel'][:lenght], _array_force_data], axis=1)
     
     
+
     _transformed_data_time = _dict_data_time.reshape((len(_dict_data_time), 1))[:lenght]
+    _transformed_on_off_data = _on_off_data.reshape((len(_on_off_data), 1))[:lenght]
     
     # concatenate all the data into a single array for _dict_data_rigid    
     _transformed_data_rigid = np.concatenate([_dict_data_rigid[rb][:lenght] for rb in state_data.rigid_bodies], axis=1)
@@ -64,41 +68,47 @@ def save_2_csv(state_data, force_data, file_path):
 if __name__ == "__main__":
 
 
-    state_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/trimmed_traj_with_helmet_meters/csvs/'
+    state_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/trimmed_traj/segmented_state_traj/csvs/'
     force_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/ft_data_200/takes/'
-    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/force_traj/csvs/'
+    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/trimmed_traj/segmented_without_gripperstate_traj/csvs/'
     
     for file in os.listdir(force_dir):
         if file.endswith(".csv"):
-            print(file)
-            state_path = f'{state_dir}{file.split(".")[0]}_cleaned.csv'
-            force_path = os.path.join(force_dir, file)
-            save_path = f'{save_dir}{file.split(".")[0]}_force_state_cleaned.csv'
-            
-            state_data = cfp.DataParser.from_quat_file(file_path = state_path, target_fps= 120, filter=False, window_size=5, polyorder=3)
+            pattern = re.compile(re.escape(file.split('.')[0]))
+            state_files = os.listdir(state_dir)
+            file_exists = [f for f in state_files if pattern.search(f)]
+            print(file_exists)
+            for state_file in file_exists:
+                print(state_file)
+                state_path = f'{state_dir}{state_file}'
+                force_path = os.path.join(force_dir, file)
+                save_path = f'{save_dir}{state_file.split(".")[0]}_force_state_cleaned.csv'
+                
+                state_data = cfp.DataParser.from_quat_file(file_path = state_path, target_fps= 120, filter=False, window_size=5, polyorder=3)
+                print(len(state_data.markers))
 
-            state_times = state_data.get_time()
-            
-            print('Lenght of State Data -',len(state_times))
+                state_times = state_data.get_time()
+                
+                print('Lenght of State Data -',len(state_times))
 
-            force_data = afp.ForceParser.from_euler_file(file_path = force_path)
+                force_data = afp.ForceParser.from_euler_file(file_path = force_path)
 
-            force_times = force_data.get_time()
+                force_times = force_data.get_time()
 
-            indices = set()
-            for time in state_times:
-                # print("Time -",time)
-                closest = _df.find_closest_number(time, force_times)
-                # print("Closest -",closest)
-                index = _df.find_index(closest, force_times)
-                indices.add(index)
-                # print("Index -",index)
-            # print(len(indices))
+                indices = set()
+                for time in state_times:
+                    # print("Time -",time)
+                    closest = _df.find_closest_number(time, force_times)
+                    # print("Closest -",closest)
+                    index = _df.find_index(closest, force_times)
+                    indices.add(index)
+                    # print("Index -",index)
+                # print(len(indices))
 
-            force_data = force_data.get_force_data(indices=list(indices))
-            print('Lenght of Force Data -',len(force_data))
-            
-            save_2_csv(state_data, force_data, save_path)
+                force_data = force_data.get_force_data(indices=list(indices))
+                print('Lenght of Force Data -',len(force_data))
+                
+                save_2_csv(state_data, force_data, save_path)
 
 
 
