@@ -1,14 +1,11 @@
-# from submodules import robomath as rm
-
-
 import sys
 import os
 parent_dir = os.path.abspath(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
 print(parent_dir)
 sys.path.append(parent_dir)
-
-import submodules.robomath as rm
 # import robomath as rm
+# import submodules.robomath as rm
+import moveit_motion.diffusion_policy_cam.submodules.robomath as rm
 import numpy as np
 from typing import Union
 
