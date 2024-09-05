@@ -114,9 +114,9 @@ def robodk_2_motive(XYZwxyz : Union[list, np.ndarray]) -> np.ndarray:
     Convert RoboDK quaternions to motive quaternions.
     """
     X = XYZwxyz[0]; Y = XYZwxyz[1]; Z = XYZwxyz[2]; w = XYZwxyz[3]; x = XYZwxyz[4]; y = XYZwxyz[5]; z = XYZwxyz[6]
-    # return [Y, Z, X, w, x, y, z]
 
-    return [Z, X, Y, w, z, x, y]
+    return [Y, Z, X, -z, x, -y, w]
+
 
 def Vxyz_wrt_Pose(Txyz: Union[list, np.ndarray], Pose: rm.Mat) -> list:
     """
