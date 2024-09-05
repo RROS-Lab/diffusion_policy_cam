@@ -20,7 +20,7 @@ from diffusers.optimization import get_scheduler
 
 
 #@markdown ### **Network Demo**
-def predicted_action(obs_deque, action_item, statistics, obs_horizon,
+def predicted_action(obs_deque, statistics, obs_horizon,
                         pred_horizon, action_horizon, action_dim, 
                         noise_scheduler, num_diffusion_iters,
                         ema_noise_pred_net, device):   
@@ -83,7 +83,7 @@ def predicted_action(obs_deque, action_item, statistics, obs_horizon,
     return action
 
 
-def _pred_traj(observation, action_item, statistics, obs_horizon,
+def _pred_traj(observation, statistics, obs_horizon,
                         pred_horizon, action_horizon, action_dim, 
                         noise_scheduler, num_diffusion_iters,
                         ema_noise_pred_net, device):
@@ -92,7 +92,7 @@ def _pred_traj(observation, action_item, statistics, obs_horizon,
     obs_deque = collections.deque(
         observation, maxlen=obs_horizon)
     
-    action =  predicted_action(obs_deque, action_item,  statistics, obs_horizon,
+    action =  predicted_action(obs_deque,  statistics, obs_horizon,
                                 pred_horizon, action_horizon, action_dim, noise_scheduler, num_diffusion_iters,
                                 ema_noise_pred_net, device)
         
@@ -216,13 +216,8 @@ def predtion_main(observation):
     pred_horizon = checkpoint['pred_horizon']
     obs_horizon = checkpoint['obs_horizon']
     action_horizon = checkpoint['action_horizon']
-    target_fps = checkpoint['target_fps']
 
-    action_item = checkpoint['action_item']
-    obs_item = checkpoint['obs_item']
-    marker_name = checkpoint['marker_name']
     statistics = checkpoint['dataset_stats']
-    start_epoch = checkpoint['epoch'] + 1
     len_dataloader = checkpoint['len_dataloader']   
     num_diffusion_iters = checkpoint['num_diffusion_iters']
     
@@ -233,7 +228,7 @@ def predtion_main(observation):
     lr_scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     ema.load_state_dict(checkpoint['ema_state_dict'])
     
-    action = _pred_traj(observation, action_item, statistics, obs_horizon,
+    action = _pred_traj(observation, statistics, obs_horizon,
                         pred_horizon, action_horizon, action_dim, 
                         noise_scheduler, num_diffusion_iters,
                         noise_pred_net, device)
