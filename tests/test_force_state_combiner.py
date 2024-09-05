@@ -22,7 +22,7 @@ def save_2_csv(state_data, force_data, file_path):
                     'dof': ['FX', 'FY', 'FZ', 'Fx', 'Fy', 'Fz']}
     }
     
-    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * (len(state_data.rigid_bodies) + 1) * _params[save_type]['len']  + ["Marker"] * len(state_data.markers) * 3)
+    _SUP_HEADER_ROW = (['Time_stamp']+["RigidBody"] * (len(state_data.rigid_bodies) + 1) * _params[save_type]['len']  +["RigidBody"]+ ["Marker"] * len(state_data.markers) * 3)
     _FPS_ROW = ["FPS", state_data.fps] + [0.0]*(len(_SUP_HEADER_ROW) - 2)
     
     _rb_col_names = []
@@ -34,7 +34,7 @@ def save_2_csv(state_data, force_data, file_path):
             _rb_col_names.extend([f"{rb}_{axis}"  for axis in _params[save_type]['dof']])
     
     _mk_col_names = [f"{mk}_{axis}" for mk in state_data.markers for axis in ['X', 'Y', 'Z']]
-    _HEADER_ROW = ['Time']+_rb_col_names  + _mk_col_names
+    _HEADER_ROW = ['Time']+_rb_col_names + ['gripper_state'] + _mk_col_names
 
     _dict_data_rigid = state_data.get_rigid_TxyzRxyz()
     _on_off_data = state_data.get_rigid_state()['gripper']
@@ -54,7 +54,7 @@ def save_2_csv(state_data, force_data, file_path):
     
     _transformed_data_marker = np.concatenate([_dict_data_marker[mk][:lenght] for mk in state_data.markers], axis=1)
     
-    _transformed_data = np.concatenate([_transformed_data_time, _transformed_data_rigid, _transformed_data_marker], axis=1)
+    _transformed_data = np.concatenate([_transformed_data_time, _transformed_data_rigid, _transformed_on_off_data, _transformed_data_marker], axis=1)
 
     # save as csv file with SUP_HEADER_ROW, FPS_ROW, HEADER_ROW, and _transformed_data
     with open(file_path, 'w') as file:

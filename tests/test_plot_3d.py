@@ -83,8 +83,8 @@ def get_visualization(data, save_path=None, video=False):
             plt.savefig(save_path)
         plt.close()
     
-    if not save_path:
-        plt.show()
+    # if not save_path:
+    plt.show()
         # plt.show()
 
 
@@ -99,11 +99,12 @@ if __name__ == "__main__":
     # read_path = write_path # test read
     # read_path = './no-sync/outputs/test_128_raw_cleaned.csv' #std. read ##TODO
     # data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 120.0, filter=True, window_size=15, polyorder=3)
-    base_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/segmented_data_set/edge_1_step_1/pred_test/normalized/csvs'
-    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/turn_table_chisel/dataset_aug14/segmented_data_set/edge_1_step_1/pred_test/normalized/plots'
+    base_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/3_edge/test'
+    save_dir = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/3_edge/plots'
     
     cleaned_file_names = os.listdir(base_dir)
     # cleaned_file_names = ['cap_056_cleaned.csv']
+
 
     for file_name in cleaned_file_names:
         if file_name.split('.')[-1] != 'csv':
@@ -112,13 +113,13 @@ if __name__ == "__main__":
         # file_name = 'cap_056_cleaned.csv'
         print(file_name)
         read_path = os.path.join(base_dir, file_name)
-        data = cfp.DataParser.from_euler_file(file_path = read_path, target_fps= 120.0, filter=False, window_size=15, polyorder=3)
+        data = cfp.DataParser.from_quat_file(file_path = read_path, target_fps= 60.0, filter=False, window_size=15, polyorder=3)
         file_name = read_path.split('/')[-1].split('.')[0]
 
         # data.save_2_csv(file_path=write_path, save_type='EULER')
         try:
             get_visualization(data=data,
-                            save_path=os.path.join(save_dir, file_name + '.png'),
+                            save_path=None,
                             video=False)
             
         except Exception as e:

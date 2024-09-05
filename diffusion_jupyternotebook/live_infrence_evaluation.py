@@ -1,41 +1,22 @@
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+print(parent_dir)
+sys.path.append(parent_dir)
+
+
 # diffusion policy import
-from typing import Tuple, Sequence, Dict, Union, Optional
 import numpy as np
-import pandas as pd
 import csv
 import torch
 import torch.nn as nn
 import collections
-import rclpy
-import submodules.data_filter as _df
 import diffusion_pipline.data_processing as dproc
 import diffusion_pipline.model as md
-import submodules.cleaned_file_parser as cfp
-from rclpy.node import Node
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
-from tqdm.auto import tqdm
-from std_msgs.msg import Int32MultiArray
 
-
-
-
-class MinimalClientAsync(Node):
-
-    def __init__(self):
-        super().__init__('minimal_client_async')
-        self.cli = self.create_client(AddTwoInts, 'add_two_ints')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
-        self.req = AddTwoInts.Request()
-
-    def send_request(self, a, b):
-        self.req.a = a
-        self.req.b = b
-        self.future = self.cli.call_async(self.req)
-        rclpy.spin_until_future_complete(self, self.future)
-        return self.future.result()
 
 
 #@markdown ### **Network Demo**
@@ -45,7 +26,6 @@ def predicted_action(obs_deque, action_item, statistics, obs_horizon,
                         ema_noise_pred_net, device):   
     
     stats = statistics
-
 
     # save visualization and rewards
     B = 1
@@ -92,41 +72,31 @@ def predicted_action(obs_deque, action_item, statistics, obs_horizon,
     start = obs_horizon - 1
     end = start + action_horizon
     action = action_pred[start:end,:]
-    grouped_actions = {name: [] for name in action_item}
+    # grouped_actions = {name: [] for name in action_item}
 
-    # Divide the 18 elements in each row into three groups
-    for i in range(len(action)):
-        for j in range(len(action_item)):
-            grouped_actions[action_item[j]].append(action[i, 6*j:6*(j+1)])
+    # # Divide the 18 elements in each row into three groups
+    # for i in range(len(action)):
+    #     for j in range(len(action_item)):
+    #         grouped_actions[action_item[j]].append(action[i, 6*j:6*(j+1)])
+    #         grouped_actions[action_item[j]].append(action[i, -1])
 
-    return grouped_actions
+    return action
 
 
-def _pred_traj(first_obs, com_obs_part, action_item, statistics, obs_horizon,
+def _pred_traj(observation, action_item, statistics, obs_horizon,
                         pred_horizon, action_horizon, action_dim, 
                         noise_scheduler, num_diffusion_iters,
                         ema_noise_pred_net, device):
     
     # keep a queue of last 2 steps of observations
     obs_deque = collections.deque(
-        [first_obs] * obs_horizon, maxlen=obs_horizon)
+        observation, maxlen=obs_horizon)
     
     action =  predicted_action(obs_deque, action_item,  statistics, obs_horizon,
                                 pred_horizon, action_horizon, action_dim, noise_scheduler, num_diffusion_iters,
                                 ema_noise_pred_net, device)
-    
-    battery_gripper = action['battery'] + action['gripper']
-    minimal_client = MinimalClientAsync()
-    response = minimal_client.send_request(battery_gripper)
-    
-    traj = []
-    for i in range(len(action)):
-        action_last = list(action[i])
-        obs_deque.append(action_last + com_obs_part)
-        traj.append(action_last + com_obs_part)
         
-        
-    return traj
+    return  action
     
 
 
@@ -232,9 +202,9 @@ def _model_initalization(action_dim, obs_dim, obs_horizon, pred_horizon, num_epo
 
 
 
-if __name__ == "__main__":
+def predtion_main(observation):
     
-    checkpoint_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/checkpoints/checkpoint_3Body_9_markers_960_SSSS_epoch_119.pth'
+    checkpoint_path = '/home/cam/Documents/raj/diffusion_policy_cam/no-sync/checkpoints/checkpoint_3BODY_4_markers_edge_1_step_1_epoch_199.pth'
 
     checkpoint = torch.load(checkpoint_path)
 
@@ -251,6 +221,7 @@ if __name__ == "__main__":
     action_item = checkpoint['action_item']
     obs_item = checkpoint['obs_item']
     marker_name = checkpoint['marker_name']
+    statistics = checkpoint['dataset_stats']
     start_epoch = checkpoint['epoch'] + 1
     len_dataloader = checkpoint['len_dataloader']   
     num_diffusion_iters = checkpoint['num_diffusion_iters']
@@ -261,6 +232,15 @@ if __name__ == "__main__":
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     lr_scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     ema.load_state_dict(checkpoint['ema_state_dict'])
+    
+    action = _pred_traj(observation, action_item, statistics, obs_horizon,
+                        pred_horizon, action_horizon, action_dim, 
+                        noise_scheduler, num_diffusion_iters,
+                        noise_pred_net, device)
+    
+    return action
+    
+    
     
 
     
