@@ -3,8 +3,9 @@ import numpy as np
 import re
 from scipy.signal import savgol_filter
 from typing import Union
-import submodules.data_filter as cfp
-import submodules.robomath_addon as rma
+# import submodules.data_filter as cfp
+import moveit_motion.diffusion_policy_cam.submodules.cleaned_file_parser as cfp
+import moveit_motion.diffusion_policy_cam.submodules.robolink_addon as rma
 
 def fps_sampler(data: pd.DataFrame, target_fps:float, input_fps: float) ->pd.DataFrame:
     """
@@ -229,3 +230,72 @@ def stop_rotation_index(path, target_fps):
     stop_index = np.argmax(np.abs(yaw_dot[::-1]) > thresehold)
     
     return stop_index, final_yaw
+
+
+from scipy.ndimage import gaussian_filter1d
+from scipy.stats import zscore
+
+
+def filter_outliers(waypoints, threshold=2.0):
+    # Calculate z-score for each column (X, Y, Z, rx, ry, rz)
+    z_scores = np.abs(zscore(waypoints, axis=0))
+    
+    # Filter out points where any dimension's z-score exceeds threshold
+    filtered_waypoints = waypoints[(z_scores < threshold).all(axis=1)]
+    
+    return filtered_waypoints
+
+def filter_outliers_verbose(waypoints, threshold=2.0):
+    """
+    Filters outliers from the waypoints based on z-score and prints the removed points with explanation.
+    
+    Parameters:
+    - waypoints: np.array of shape (n, 6), where n is the number of waypoints, and 6 represents [X, Y, Z, rx, ry, rz].
+    - threshold: Z-score threshold for detecting outliers.
+    
+    Returns:
+    - filtered_waypoints: np.array of waypoints with outliers removed.
+    - removed_waypoints: np.array of waypoints that were removed.
+    """
+    waypoints = np.array(waypoints)
+    z_scores = np.abs(zscore(waypoints, axis=0))
+    
+    # Create mask for waypoints that are not outliers
+    mask = (z_scores < threshold).all(axis=1)
+    
+    # Separate filtered and removed waypoints
+    filtered_waypoints = waypoints[mask]
+    removed_waypoints = waypoints[~mask]
+    
+    # Verbose logging of removed waypoints
+    for i, (point, z_point) in enumerate(zip(removed_waypoints, z_scores[~mask])):
+        reason = []
+        labels = ['X', 'Y', 'Z', 'rx', 'ry', 'rz']
+        for dim, z, label in zip(point, z_point, labels):
+            if z >= threshold:
+                reason.append(f"{label}: z-score = {z:.2f}")
+        print(f"Removed waypoint {i + 1}: {point} | Reason: {'; '.join(reason)}")
+    
+    return filtered_waypoints
+
+def smooth_waypoints_gaussian(waypoints, sigma=1.0):
+    # Apply Gaussian smoothing along each column (X, Y, Z, rx, ry, rz)
+    smoothed_waypoints = gaussian_filter1d(waypoints, sigma=sigma, axis=0)
+    return smoothed_waypoints
+
+def smooth_waypoints_sg(waypoints, window_length=7, polyorder=3):
+    """
+    Applies Savitzky-Golay filter to smooth waypoints.
+    
+    Parameters:
+    - waypoints: np.array of shape (n, 6), where n is the number of waypoints, 
+                 and 6 represents [X, Y, Z, rx, ry, rz].
+    - window_length: Odd integer representing the size of the window. 
+    - polyorder: Degree of the polynomial to fit in each window.
+    
+    Returns:
+    - Smoothed waypoints of the same shape as input.
+    """
+    # Apply SG filter for each column (X, Y, Z, rx, ry, rz)
+    smoothed_waypoints = savgol_filter(waypoints, window_length=window_length, polyorder=polyorder, axis=0)
+    return smoothed_waypoints
